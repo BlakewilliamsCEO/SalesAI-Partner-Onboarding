@@ -1878,15 +1878,31 @@ async function enrichCompanyData(website) {
       displayEnhancedPartnershipCard(enhancedProfile, enhancedInsights, enhancedData);
     }
   } else if (scrapedProfile) {
-    // Fallback to basic profile if Claude enhancement failed
+    // Fallback to basic profile if Claude enhancement failed - STILL use new card
     const hasData = scrapedProfile.targetRoles?.length > 0 ||
                     scrapedProfile.targetIndustries?.length > 0 ||
                     scrapedProfile.useCases?.length > 0;
 
     if (hasData) {
       const insights = generateBetterTogetherInsights(scrapedProfile, state.enrichedCompany);
+      // Build profile object matching expected format
+      const fallbackProfile = {
+        targetRoles: scrapedProfile.targetRoles || [],
+        targetIndustries: scrapedProfile.targetIndustries || [],
+        useCases: scrapedProfile.useCases || [],
+        services: scrapedProfile.services || [],
+        customers: scrapedProfile.customers || [],
+        companySize: scrapedProfile.companySize,
+        language: scrapedProfile.language || {},
+        pagesScraped: scrapedProfile.pagesScraped || []
+      };
+      const fallbackInsights = {
+        partnershipType: insights.partnershipType || 'referral',
+        gtmFit: insights.gtmFit || 'moderate'
+      };
       await delay(500);
-      displayPartnershipProfileCard(scrapedProfile, insights);
+      // Use new card with fallback stories - never show old UI
+      displayEnhancedPartnershipCard(fallbackProfile, fallbackInsights, {});
     }
   }
 }
@@ -2076,6 +2092,13 @@ async function enhanceDataWithClaude(companyData, scrapedProfile, customerData, 
 
         const enhanced = JSON.parse(cleanContent.trim());
 
+        // DEBUG: Log exactly what Claude returned
+        console.log('=== CLAUDE JVP RESPONSE ===');
+        console.log('Has jvpStories:', !!enhanced.jvpStories);
+        console.log('jvpStories count:', enhanced.jvpStories?.length || 0);
+        console.log('Full response:', JSON.stringify(enhanced, null, 2));
+        console.log('=== END CLAUDE RESPONSE ===');
+
         if (currentActionList) {
           currentActionList.updateAction('claude-enhance', 'complete', `Generated ${enhanced.jvpStories?.length || 0} use case stories`);
           if (enhanced.partnerSummary?.gtmAlignment) {
@@ -2083,7 +2106,6 @@ async function enhanceDataWithClaude(companyData, scrapedProfile, customerData, 
           }
         }
 
-        console.log('Claude JVP Stories:', enhanced);
         return enhanced;
 
       } catch (parseError) {
@@ -5892,6 +5914,81 @@ let btCardState = {
   isSubmitted: false
 };
 
+// Generate fallback JVP stories when Claude doesn't return them
+function generateFallbackJVPStories(profile, insights, companyName) {
+  // Use cases that align with most common partner scenarios
+  const useCaseTemplates = [
+    {
+      useCase: 'Speed-to-Lead',
+      description: 'Instant outbound call within 60 seconds of lead capture',
+      trigger: 'New form fill, demo request, inbound inquiry'
+    },
+    {
+      useCase: 'Demo/Meeting Booking',
+      description: 'AI schedules meetings directly to rep calendars 24/7',
+      trigger: 'Qualified lead needs appointment'
+    },
+    {
+      useCase: 'CRM Lead Reactivation',
+      description: 'Multi-touch call sequences for dormant leads',
+      trigger: 'Stale MQLs (2-6 months old), closed-lost, no-shows'
+    }
+  ];
+
+  // Extract available data from profile
+  const roles = profile.targetRoles || [];
+  const industries = profile.targetIndustries || [];
+  const useCases = profile.useCases || [];
+  const services = profile.services || [];
+
+  return useCaseTemplates.map((template, index) => ({
+    rank: index + 1,
+    useCase: template.useCase,
+    useCaseTier: index === 0 ? 'perfect' : 'ok',
+    persona: {
+      title: roles[index] || ['VP of Sales', 'Marketing Director', 'Revenue Operations Manager'][index],
+      vertical: industries[index] || ['B2B SaaS', 'Professional Services', 'Technology'][index],
+      seniority: 'Director',
+      companySize: profile.companySize || 'Mid-Market',
+      commonTech: ['HubSpot', 'Salesforce'],
+      organizationalGoals: ['Drive revenue growth', 'Improve lead conversion', 'Scale operations']
+    },
+    currentState: {
+      useCase: template.description,
+      problemBlocker: 'Manual follow-up creates delays and dropped leads',
+      currentWay: `Using ${companyName}'s services with manual outreach processes`,
+      problems: ['Slow response times', 'Inconsistent follow-up', 'Limited after-hours coverage'],
+      limitation: 'Unable to scale without adding headcount'
+    },
+    empathyMap: {
+      say: ['We need faster lead response', 'Our team can\'t keep up with volume'],
+      think: ['We\'re losing deals to competitors who respond faster'],
+      feel: ['Frustrated', 'Overwhelmed by lead volume'],
+      do: ['Prioritize only hot leads', 'Miss evening/weekend inquiries']
+    },
+    futureState: {
+      betterTogetherCapability: `${companyName} + SalesAI enables instant, 24/7 lead engagement`,
+      partnerContribution: services[0] || useCases[0] || `${companyName}'s expertise in their domain`,
+      salesAiContribution: 'AI voice agents that respond within 60 seconds, qualify leads, and book meetings automatically',
+      connectedFeatures: 'Native CRM integration ensures seamless handoffs and data sync',
+      benefits: ['100% lead contact rate', 'Meetings booked 24/7', '2-3x improvement in speed-to-lead'],
+      doNothingRisk: 'Competitors with faster response times will continue capturing your prospects'
+    },
+    jointValueProp: `${companyName} + SalesAI = Every lead contacted instantly, qualified automatically, and converted faster`,
+    proofPoints: {
+      partnerEvidence: `${companyName} has established expertise serving ${industries[0] || 'B2B companies'}`,
+      salesAiEvidence: 'SalesAI customers see 40% increase in meeting bookings with instant follow-up',
+      sharedCustomerProfile: `${industries[0] || 'B2B'} companies with high lead volume needing faster response`
+    },
+    confidence: {
+      personaFit: index === 0 ? 'high' : 'medium',
+      useCaseFit: index === 0 ? 'high' : 'medium',
+      dataQuality: 'medium',
+      reasoning: 'Generated from available partner profile data - customize based on actual use cases'
+    }
+  }));
+}
+
 // Display the Better Together card - exact match to V2 design
 function displayEnhancedPartnershipCard(profile, insights, enhancedData) {
   const messageDiv = document.createElement('div');
@@ -5899,14 +5996,20 @@ function displayEnhancedPartnershipCard(profile, insights, enhancedData) {
   messageDiv.id = 'better-together-card';
 
   const companyName = state.enrichedCompany?.name || state.formData.companyName || 'Partner';
-  const stories = enhancedData?.jvpStories || [];
-  const partnerSummary = enhancedData?.partnerSummary || {};
 
-  // If no JVP stories were generated, fall back to simple display
+  // Use Claude stories or generate fallback - NEVER fall back to old UI
+  let stories = enhancedData?.jvpStories || [];
   if (!stories.length) {
-    displaySimplePartnershipCard(profile, insights, companyName);
-    return;
+    console.log('No JVP stories from Claude - generating fallback stories');
+    stories = generateFallbackJVPStories(profile, insights, companyName);
   }
+
+  const partnerSummary = enhancedData?.partnerSummary || {
+    recommendedPartnershipType: insights.partnershipType || 'referral',
+    gtmAlignment: insights.gtmFit || 'moderate',
+    primaryValueDriver: 'Speed-to-lead and pipeline acceleration',
+    enablementPriority: 'Use case training and co-selling playbook'
+  };
 
   // Reset card state
   btCardState = {
