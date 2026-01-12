@@ -1,0 +1,6 @@
+node_modules/
+.DS_Store
+*.log
+
+# Local config with API keys - DO NOT COMMIT
+config.js

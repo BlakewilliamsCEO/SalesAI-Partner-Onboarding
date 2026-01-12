@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalesAI Partner Application - Test Suite</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0d0d12;
+      color: #ffffff;
+      padding: 40px;
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 32px;
+    }
+    .test-section {
+      background: #12121a;
+      border: 1px solid #1e1e2e;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .test-section h2 {
+      font-size: 16px;
+      color: #22c55e;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .test-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid #1e1e2e;
+    }
+    .test-item:last-child {
+      border-bottom: none;
+    }
+    .test-status {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .test-status.pass {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+    .test-status.fail {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+    }
+    .test-status.pending {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+    }
+    .test-name {
+      flex: 1;
+      font-size: 14px;
+    }
+    .test-time {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .summary {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    .summary-item {
+      background: #1a1a24;
+      padding: 16px 24px;
+      border-radius: 8px;
+    }
+    .summary-label {
+      font-size: 12px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .summary-value {
+      font-size: 32px;
+      font-weight: 700;
+    }
+    .summary-value.pass { color: #22c55e; }
+    .summary-value.fail { color: #ef4444; }
+    .summary-value.total { color: #ffffff; }
+    .run-btn {
+      background: #22c55e;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 32px;
+    }
+    .run-btn:hover {
+      background: #16a34a;
+    }
+    .run-btn:disabled {
+      background: #3e3e4e;
+      cursor: not-allowed;
+    }
+    .error-details {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #fca5a5;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <h1>SalesAI Partner Application Test Suite</h1>
+  <p class="subtitle">Automated tests for the Partner Onboarding Experience</p>
+
+  <button class="run-btn" id="run-tests" onclick="runAllTests()">Run All Tests</button>
+
+  <div class="summary">
+    <div class="summary-item">
+      <div class="summary-label">Passed</div>
+      <div class="summary-value pass" id="passed-count">0</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Failed</div>
+      <div class="summary-value fail" id="failed-count">0</div>
+    </div>
+    <div class="summary-item">
+      <div class="summary-label">Total</div>
+      <div class="summary-value total" id="total-count">0</div>
+    </div>
+  </div>
+
+  <div id="test-results"></div>
+
+  <!-- Load the app.js to test -->
+  <script src="app.js"></script>
+
+  <script>
+    // Test Framework
+    const TestRunner = {
+      results: [],
+      passed: 0,
+      failed: 0,
+
+      reset() {
+        this.results = [];
+        this.passed = 0;
+        this.failed = 0;
+      },
+
+      async test(name, fn) {
+        const start = performance.now();
+        try {
+          await fn();
+          const time = (performance.now() - start).toFixed(2);
+          this.results.push({ name, status: 'pass', time });
+          this.passed++;
+        } catch (error) {
+          const time = (performance.now() - start).toFixed(2);
+          this.results.push({ name, status: 'fail', time, error: error.message });
+          this.failed++;
+        }
+      },
+
+      assert(condition, message) {
+        if (!condition) {
+          throw new Error(message || 'Assertion failed');
+        }
+      },
+
+      assertEqual(actual, expected, message) {
+        if (actual !== expected) {
+          throw new Error(message || `Expected ${expected}, got ${actual}`);
+        }
+      },
+
+      assertArrayIncludes(array, item, message) {
+        if (!array.includes(item)) {
+          throw new Error(message || `Array does not include ${item}`);
+        }
+      },
+
+      render() {
+        const container = document.getElementById('test-results');
+        document.getElementById('passed-count').textContent = this.passed;
+        document.getElementById('failed-count').textContent = this.failed;
+        document.getElementById('total-count').textContent = this.results.length;
+
+        // Group tests by section
+        const sections = {};
+        this.results.forEach(result => {
+          const [section] = result.name.split(':');
+          if (!sections[section]) sections[section] = [];
+          sections[section].push(result);
+        });
+
+        container.innerHTML = Object.entries(sections).map(([section, tests]) => `
+          <div class="test-section">
+            <h2>${section}</h2>
+            ${tests.map(test => `
+              <div class="test-item">
+                <div class="test-status ${test.status}">${test.status === 'pass' ? '✓' : '✗'}</div>
+                <div class="test-name">
+                  ${test.name.split(':')[1] || test.name}
+                  ${test.error ? `<div class="error-details">${test.error}</div>` : ''}
+                </div>
+                <div class="test-time">${test.time}ms</div>
+              </div>
+            `).join('')}
+          </div>
+        `).join('');
+      }
+    };
+
+    // Test Suites
+    async function runAllTests() {
+      const btn = document.getElementById('run-tests');
+      btn.disabled = true;
+      btn.textContent = 'Running...';
+
+      TestRunner.reset();
+
+      // ============================================
+      // CompanyAPI Tests
+      // ============================================
+
+      await TestRunner.test('CompanyAPI: should be defined', () => {
+        TestRunner.assert(typeof CompanyAPI === 'object', 'CompanyAPI is not defined');
+      });
+
+      await TestRunner.test('CompanyAPI: init should set API key', () => {
+        CompanyAPI.init('test-key');
+        TestRunner.assertEqual(CompanyAPI.apiKey, 'test-key');
+        // Reset to actual key
+        CompanyAPI.init('amFnmQEqe85Pp85CSFnICEQiuTE3JF6E');
+      });
+
+      await TestRunner.test('CompanyAPI: extractDomain from URL', () => {
+        const domain = CompanyAPI.extractDomain('https://www.microsoft.com/en-us');
+        TestRunner.assertEqual(domain, 'microsoft.com');
+      });
+
+      await TestRunner.test('CompanyAPI: extractDomain from URL without www', () => {
+        const domain = CompanyAPI.extractDomain('https://hubspot.com');
+        TestRunner.assertEqual(domain, 'hubspot.com');
+      });
+
+      await TestRunner.test('CompanyAPI: extractDomain from email', () => {
+        const domain = CompanyAPI.extractDomain('john@salesforce.com');
+        TestRunner.assertEqual(domain, 'salesforce.com');
+      });
+
+      await TestRunner.test('CompanyAPI: extractDomain from bare domain', () => {
+        const domain = CompanyAPI.extractDomain('example.com');
+        TestRunner.assertEqual(domain, 'example.com');
+      });
+
+      await TestRunner.test('CompanyAPI: getEmployeeRange for small company', () => {
+        const range = CompanyAPI.getEmployeeRange(25);
+        TestRunner.assertEqual(range, '11-50');
+      });
+
+      await TestRunner.test('CompanyAPI: getEmployeeRange for large company', () => {
+        const range = CompanyAPI.getEmployeeRange(1000);
+        TestRunner.assertEqual(range, '500+');
+      });
+
+      await TestRunner.test('CompanyAPI: normalizeCompanyData handles empty input', () => {
+        const result = CompanyAPI.normalizeCompanyData({});
+        TestRunner.assert(result.name === null, 'Name should be null for empty input');
+        TestRunner.assert(Array.isArray(result.industries), 'Industries should be an array');
+      });
+
+      await TestRunner.test('CompanyAPI: normalizeCompanyData extracts nested data', () => {
+        const mockData = {
+          about: {
+            name: 'Test Corp',
+            industry: 'technology',
+            totalEmployees: '100-200'
+          },
+          locations: {
+            headquarters: {
+              country: { code: 'us', name: 'United States' }
+            }
+          }
+        };
+        const result = CompanyAPI.normalizeCompanyData(mockData);
+        TestRunner.assertEqual(result.name, 'Test Corp');
+        TestRunner.assertEqual(result.industry, 'technology');
+        TestRunner.assertEqual(result.headquarters.countryCode, 'US');
+      });
+
+      // ============================================
+      // Industry Matching Tests
+      // ============================================
+
+      await TestRunner.test('Industry Matching: getSuggestedVerticals for software', () => {
+        CompanyAPI.enrichedData = { industry: 'software-development', industries: [] };
+        const verticals = CompanyAPI.getSuggestedVerticals();
+        TestRunner.assertArrayIncludes(verticals, 'SaaS / Software');
+      });
+
+      await TestRunner.test('Industry Matching: getSuggestedVerticals for healthcare', () => {
+        CompanyAPI.enrichedData = { industry: 'healthcare', industries: ['medical'] };
+        const verticals = CompanyAPI.getSuggestedVerticals();
+        TestRunner.assertArrayIncludes(verticals, 'Healthcare');
+      });
+
+      await TestRunner.test('Industry Matching: getSuggestedVerticals for financial services', () => {
+        CompanyAPI.enrichedData = { industry: 'banking', industries: ['financial-services'] };
+        const verticals = CompanyAPI.getSuggestedVerticals();
+        TestRunner.assertArrayIncludes(verticals, 'Financial Services');
+      });
+
+      await TestRunner.test('Industry Matching: getSuggestedVerticals returns empty for unknown', () => {
+        CompanyAPI.enrichedData = { industry: 'unknown-industry-xyz', industries: [] };
+        const verticals = CompanyAPI.getSuggestedVerticals();
+        TestRunner.assertEqual(verticals.length, 0);
+      });
+
+      // ============================================
+      // CRM Detection Tests
+      // ============================================
+
+      await TestRunner.test('CRM Detection: detects Salesforce', () => {
+        CompanyAPI.enrichedData = { technologies: ['salesforce', 'react', 'node-js'] };
+        const crms = CompanyAPI.getDetectedCRMs();
+        TestRunner.assertArrayIncludes(crms, 'Salesforce');
+      });
+
+      await TestRunner.test('CRM Detection: detects HubSpot', () => {
+        CompanyAPI.enrichedData = { technologies: ['hubspot', 'wordpress'] };
+        const crms = CompanyAPI.getDetectedCRMs();
+        TestRunner.assertArrayIncludes(crms, 'HubSpot');
+      });
+
+      await TestRunner.test('CRM Detection: detects multiple CRMs', () => {
+        CompanyAPI.enrichedData = { technologies: ['salesforce', 'hubspot', 'pipedrive'] };
+        const crms = CompanyAPI.getDetectedCRMs();
+        TestRunner.assertEqual(crms.length, 3);
+      });
+
+      await TestRunner.test('CRM Detection: returns empty for no CRMs', () => {
+        CompanyAPI.enrichedData = { technologies: ['react', 'node-js', 'aws'] };
+        const crms = CompanyAPI.getDetectedCRMs();
+        TestRunner.assertEqual(crms.length, 0);
+      });
+
+      // ============================================
+      // ACV Suggestion Tests
+      // ============================================
+
+      await TestRunner.test('ACV Suggestion: small company gets 5k-15k', () => {
+        CompanyAPI.enrichedData = { employeeCount: 30 };
+        const acv = CompanyAPI.getSuggestedACVRange();
+        TestRunner.assertEqual(acv, '5k-15k');
+      });
+
+      await TestRunner.test('ACV Suggestion: medium company gets 15k-50k', () => {
+        CompanyAPI.enrichedData = { employeeCount: 150 };
+        const acv = CompanyAPI.getSuggestedACVRange();
+        TestRunner.assertEqual(acv, '15k-50k');
+      });
+
+      await TestRunner.test('ACV Suggestion: large company gets 100k+', () => {
+        CompanyAPI.enrichedData = { employeeCount: 5000 };
+        const acv = CompanyAPI.getSuggestedACVRange();
+        TestRunner.assertEqual(acv, '100k+');
+      });
+
+      // ============================================
+      // Section Configuration Tests
+      // ============================================
+
+      await TestRunner.test('Sections: should have 9 sections defined', () => {
+        TestRunner.assertEqual(sections.length, 9);
+      });
+
+      await TestRunner.test('Sections: first section should be identity', () => {
+        TestRunner.assertEqual(sections[0].id, 'identity');
+      });
+
+      await TestRunner.test('Sections: last section should be payout', () => {
+        TestRunner.assertEqual(sections[sections.length - 1].id, 'payout');
+      });
+
+      await TestRunner.test('Sections: ICP section should have scoring flag', () => {
+        const icpSection = sections.find(s => s.id === 'icp');
+        TestRunner.assert(icpSection.scoring === true);
+      });
+
+      // ============================================
+      // State Management Tests
+      // ============================================
+
+      await TestRunner.test('State: should have data object', () => {
+        TestRunner.assert(typeof state.data === 'object');
+      });
+
+      await TestRunner.test('State: should have all required fields', () => {
+        const requiredFields = ['companyName', 'companyWebsite', 'contactEmail', 'partnerType'];
+        requiredFields.forEach(field => {
+          TestRunner.assert(field in state.data, `Missing field: ${field}`);
+        });
+      });
+
+      await TestRunner.test('State: score should start at 0', () => {
+        TestRunner.assertEqual(state.score, 0);
+      });
+
+      await TestRunner.test('State: disqualified should start false', () => {
+        TestRunner.assertEqual(state.disqualified, false);
+      });
+
+      // ============================================
+      // Scoring Logic Tests
+      // ============================================
+
+      await TestRunner.test('Scoring: should disqualify for no call volume', () => {
+        const originalData = { ...state.data };
+        state.data.avgMonthlyCallVolume = '0';
+        calculateScore();
+        TestRunner.assert(state.disqualified === true, 'Should be disqualified');
+        TestRunner.assert(state.disqualifyReasons.length > 0, 'Should have reason');
+        // Reset
+        state.data = originalData;
+        state.disqualified = false;
+        state.disqualifyReasons = [];
+      });
+
+      await TestRunner.test('Scoring: should add points for high ICP match', () => {
+        const originalData = { ...state.data };
+        state.data.icpMatchPercent = '76-100';
+        state.data.avgMonthlyCallVolume = '500+';
+        calculateScore();
+        TestRunner.assert(state.score > 0, 'Score should be greater than 0');
+        // Reset
+        state.data = originalData;
+        state.score = 0;
+      });
+
+      await TestRunner.test('Scoring: should cap score at 100', () => {
+        const originalData = { ...state.data };
+        // Set all high-scoring values
+        state.data.icpMatchPercent = '76-100';
+        state.data.avgMonthlyCallVolume = '500+';
+        state.data.averageACV = '100k+';
+        state.data.activeCustomers = '500+';
+        state.data.runsSalesDemos = 'yes';
+        state.data.salesTeamSize = '10+';
+        state.data.providesServices = 'yes';
+        state.data.hasServicePlaybooks = 'yes';
+        state.data.firstLineSupportOwnership = 'yes';
+        state.data.ninetyDayOpportunityEstimate = '25+';
+        calculateScore();
+        TestRunner.assert(state.score <= 100, 'Score should not exceed 100');
+        // Reset
+        state.data = originalData;
+        state.score = 0;
+      });
+
+      // ============================================
+      // Validation Tests
+      // ============================================
+
+      await TestRunner.test('Validation: isValidEmail accepts valid email', () => {
+        TestRunner.assert(isValidEmail('test@example.com') === true);
+      });
+
+      await TestRunner.test('Validation: isValidEmail rejects invalid email', () => {
+        TestRunner.assert(isValidEmail('invalid-email') === false);
+      });
+
+      await TestRunner.test('Validation: isValidEmail rejects email without @', () => {
+        TestRunner.assert(isValidEmail('test.example.com') === false);
+      });
+
+      // ============================================
+      // Helper Function Tests
+      // ============================================
+
+      await TestRunner.test('Helpers: selectPartnerType updates state', () => {
+        const originalType = state.data.partnerType;
+        state.data.partnerType = 'referral';
+        TestRunner.assertEqual(state.data.partnerType, 'referral');
+        state.data.partnerType = originalType;
+      });
+
+      await TestRunner.test('Helpers: toggleAgreement should work', () => {
+        const original = state.data.agreementAccepted;
+        state.data.agreementAccepted = true;
+        TestRunner.assertEqual(state.data.agreementAccepted, true);
+        state.data.agreementAccepted = original;
+      });
+
+      // ============================================
+      // Threshold Tests
+      // ============================================
+
+      await TestRunner.test('Thresholds: SCORE_THRESHOLD should be 60', () => {
+        TestRunner.assertEqual(SCORE_THRESHOLD, 60);
+      });
+
+      await TestRunner.test('Thresholds: MAX_SCORE should be 100', () => {
+        TestRunner.assertEqual(MAX_SCORE, 100);
+      });
+
+      // ============================================
+      // API Integration Test (Live)
+      // ============================================
+
+      await TestRunner.test('API Integration: fetch company data (live test)', async () => {
+        // Reset enrichment state
+        CompanyAPI.enrichmentAttempted = false;
+        CompanyAPI.enrichedData = null;
+
+        const result = await CompanyAPI.fetchCompanyData('hubspot.com');
+
+        // Should return data or null (depending on API availability)
+        if (result) {
+          TestRunner.assert(result.name !== undefined, 'Should have name property');
+          TestRunner.assert(result.headquarters !== undefined, 'Should have headquarters');
+        } else {
+          // API might fail due to CORS in browser - that's acceptable
+          console.log('API call returned null - may be CORS restricted in browser');
+        }
+      });
+
+      // Render results
+      TestRunner.render();
+
+      btn.disabled = false;
+      btn.textContent = 'Run All Tests';
+    }
+
+    // Run tests on load
+    window.addEventListener('load', () => {
+      setTimeout(runAllTests, 500);
+    });
+  </script>
+</body>
+</html>

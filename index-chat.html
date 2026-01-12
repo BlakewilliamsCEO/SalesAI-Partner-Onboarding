@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalesAi | Partner Application</title>
+  <link rel="stylesheet" href="styles-chat.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- L-shaped bracket top-left -->
+            <path d="M2 2h10v5H7v13H2V2z" fill="#22c55e"/>
+            <!-- Rounded pill top-right -->
+            <rect x="18" y="2" width="20" height="11" rx="5.5" fill="#22c55e"/>
+            <!-- Circle ring bottom-left -->
+            <circle cx="11" cy="29" r="7" stroke="#22c55e" stroke-width="4" fill="none"/>
+          </svg>
+          <div class="logo-text">
+            <span class="logo-name">SalesAi</span>
+            <span class="logo-tagline">Partner Application</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Application</div>
+          <div class="nav-steps" id="nav-steps">
+            <!-- Steps rendered by JS -->
+          </div>
+        </div>
+
+        <div class="nav-section" id="milestones-section">
+          <div class="nav-section-title">Partnership Milestones</div>
+          <div class="milestone-steps" id="milestone-steps">
+            <div class="milestone-step" data-milestone="assessment">
+              <div class="milestone-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 11l3 3L22 4"/>
+                  <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                </svg>
+              </div>
+              <div class="milestone-content">
+                <div class="milestone-label">Partner Assessment</div>
+                <div class="milestone-desc">Alignment report</div>
+              </div>
+            </div>
+            <div class="milestone-step locked" data-milestone="partnerstack">
+              <div class="milestone-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+              </div>
+              <div class="milestone-content">
+                <div class="milestone-label">PartnerStack Signoff</div>
+                <div class="milestone-desc">Activate portal</div>
+              </div>
+            </div>
+            <div class="milestone-step locked" data-milestone="valueprop">
+              <div class="milestone-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <div class="milestone-content">
+                <div class="milestone-label">Joint Value Prop</div>
+                <div class="milestone-desc">Co-develop positioning</div>
+              </div>
+            </div>
+            <div class="milestone-step locked" data-milestone="gtm">
+              <div class="milestone-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+              </div>
+              <div class="milestone-content">
+                <div class="milestone-label">GTM Strategy</div>
+                <div class="milestone-desc">Launch plan</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-section" id="fit-info-section">
+          <div class="nav-section-title">Partnership Fit</div>
+          <div class="nav-info">
+            <div class="nav-info-title">What We're Exploring</div>
+            <ul class="nav-info-list">
+              <li>ICP & Market Fit</li>
+              <li>Revenue Quality</li>
+              <li>GTM Capability</li>
+              <li>Service Readiness</li>
+              <li>Scale Potential</li>
+            </ul>
+          </div>
+          <div class="score-preview" id="score-preview" style="display: none;">
+            <div class="score-label">Partnership Alignment</div>
+            <div class="score-value" id="current-score">0</div>
+            <div class="score-bar">
+              <div class="score-fill" id="score-fill"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="logo logo-small">
+          <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- L-shaped bracket top-left -->
+            <path d="M2 2h10v5H7v13H2V2z" fill="#22c55e"/>
+            <!-- Rounded pill top-right -->
+            <rect x="18" y="2" width="20" height="11" rx="5.5" fill="#22c55e"/>
+            <!-- Circle ring bottom-left -->
+            <circle cx="11" cy="29" r="7" stroke="#22c55e" stroke-width="4" fill="none"/>
+          </svg>
+          <div class="logo-text">
+            <span class="logo-name">SalesAi</span>
+            <span class="logo-tagline">Simplifying Ai</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="chat-container">
+      <!-- Chat Messages -->
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-messages-inner" id="chat-messages-inner">
+          <!-- Messages rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Chat Input -->
+      <div class="chat-input-container">
+        <div class="chat-input-wrapper">
+          <div class="chat-input-inner">
+            <textarea
+              id="chat-input"
+              class="chat-input"
+              placeholder="Type your response..."
+              rows="1"
+            ></textarea>
+            <button class="chat-send-btn" id="chat-send-btn" disabled>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="chat-input-footer">
+            <span class="chat-input-hint">Press Enter to send, Shift+Enter for new line</span>
+            <span class="chat-progress" id="chat-progress">Getting started</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="success-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Welcome to the Team!</h3>
+      </div>
+      <div class="modal-body" id="success-content">
+        <!-- Success content injected by JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal()">Go to My Partner Portal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Modal -->
+  <div class="modal-overlay" id="disqualified-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Application Received!</h3>
+      </div>
+      <div class="modal-body" id="disqualified-content">
+        <!-- Content injected by JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeDisqualifiedModal()">Close</button>
+        <button class="btn btn-primary" onclick="window.location.href='https://salesai.com'">Explore SalesAI</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assessment Report Page -->
+  <div class="assessment-overlay" id="assessment-overlay">
+    <div class="assessment-container">
+      <div class="assessment-header">
+        <div class="assessment-header-left">
+          <svg class="assessment-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- L-shaped bracket top-left -->
+            <path d="M2 2h10v5H7v13H2V2z" fill="#22c55e"/>
+            <!-- Rounded pill top-right -->
+            <rect x="18" y="2" width="20" height="11" rx="5.5" fill="#22c55e"/>
+            <!-- Circle ring bottom-left -->
+            <circle cx="11" cy="29" r="7" stroke="#22c55e" stroke-width="4" fill="none"/>
+          </svg>
+          <div class="assessment-title-block">
+            <h1 class="assessment-title">Partner Assessment Report</h1>
+            <p class="assessment-subtitle" id="assessment-partner-name">Partner Company</p>
+          </div>
+        </div>
+        <div class="assessment-header-right">
+          <button class="btn btn-ghost" onclick="shareAssessment()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            Share Report
+          </button>
+          <button class="btn btn-primary" onclick="proceedToPartnerStack()">Continue to PartnerStack</button>
+        </div>
+      </div>
+
+      <div class="assessment-content" id="assessment-content">
+        <!-- Assessment content injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Config file (gitignored) - copy config.example.js to config.js and add your API keys -->
+  <script src="config.js" onerror="console.warn('config.js not found - using placeholder API keys')"></script>
+  <script src="app-chat.js"></script>
+</body>
+</html>
