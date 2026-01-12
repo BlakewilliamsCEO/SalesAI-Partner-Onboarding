@@ -303,8 +303,19 @@ I'm here to learn about you and your business so we can design the perfect partn
 
 Let's start with the basics — what's your name?`,
     inputType: 'text',
-    field: 'firstName',
-    placeholder: 'Enter your first name'
+    field: 'fullName',
+    placeholder: 'Enter your name',
+    onSubmit: (value) => {
+      // Parse full name into first and last name
+      const parts = value.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        state.formData.firstName = parts[0];
+        state.formData.lastName = parts.slice(1).join(' ');
+      } else {
+        state.formData.firstName = parts[0];
+        // lastName will be asked in next step
+      }
+    }
   },
   {
     section: 0,
@@ -312,7 +323,8 @@ Let's start with the basics — what's your name?`,
     content: (data) => `Great to meet you, ${data.firstName}! And your last name?`,
     inputType: 'text',
     field: 'lastName',
-    placeholder: 'Enter your last name'
+    placeholder: 'Enter your last name',
+    skipIf: (data) => !!data.lastName  // Skip if we already parsed a last name
   },
   {
     section: 0,
@@ -324,6 +336,38 @@ Let's start with the basics — what's your name?`,
     validate: (value) => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return emailRegex.test(value) ? null : 'Please enter a valid email address';
+    },
+    onSubmit: async (value) => {
+      // Extract domain from email and check if it's a business domain
+      const domain = value.split('@')[1]?.toLowerCase();
+      const personalDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com', 'mail.com', 'protonmail.com', 'live.com', 'msn.com'];
+
+      if (domain && !personalDomains.includes(domain)) {
+        // Store the extracted domain for confirmation
+        state.formData.extractedDomain = domain;
+      }
+    }
+  },
+  // Confirm domain extracted from email
+  {
+    section: 0,
+    type: 'message',
+    content: (data) => `Is **${data.extractedDomain}** your company's primary website?`,
+    inputType: 'select',
+    field: 'domainConfirmed',
+    options: [
+      { value: 'yes', label: `Yes, that's correct` },
+      { value: 'no', label: 'No, let me enter it' }
+    ],
+    skipIf: (data) => !data.extractedDomain,  // Only show if we extracted a domain
+    onSubmit: async (value) => {
+      if (value === 'yes') {
+        state.formData.companyWebsite = state.formData.extractedDomain;
+        state.formData.emailDomainExtracted = true;
+        // Trigger enrichment
+        await enrichCompanyData(state.formData.extractedDomain);
+      }
+      // If 'no', they'll be asked for company info in the normal flow
     }
   },
   {
@@ -336,6 +380,28 @@ Let's start with the basics — what's your name?`,
   },
 
   // SECTION B: Company Info
+  // This message shows when we already extracted company from email
+  {
+    section: 1,
+    type: 'message',
+    content: (data) => {
+      const companyName = state.enrichedCompanyData?.name || data.companyWebsite;
+      return `Perfect, ${data.firstName}! I see you're with **${companyName}** — I've already pulled up some information about your company.
+
+What's your role there?`;
+    },
+    inputType: 'select',
+    field: 'role',
+    options: [
+      { value: 'founder-ceo', label: 'Founder / CEO' },
+      { value: 'sales-leader', label: 'Sales Leader' },
+      { value: 'marketing-leader', label: 'Marketing Leader' },
+      { value: 'partnerships-bd', label: 'Partnerships / BD' },
+      { value: 'consultant', label: 'Consultant / Agency' },
+      { value: 'other', label: 'Other' }
+    ],
+    skipIf: (data) => !data.emailDomainExtracted  // Only show when we extracted from email
+  },
   {
     section: 1,
     type: 'message',
@@ -344,7 +410,8 @@ Let's start with the basics — what's your name?`,
 What's the name of your company?`,
     inputType: 'text',
     field: 'companyName',
-    placeholder: 'Enter your company name'
+    placeholder: 'Enter your company name',
+    skipIf: (data) => !!data.emailDomainExtracted  // Skip if we extracted from email
   },
   {
     section: 1,
@@ -353,6 +420,7 @@ What's the name of your company?`,
     inputType: 'text',
     field: 'companyWebsite',
     placeholder: 'e.g., yourcompany.com',
+    skipIf: (data) => !!data.emailDomainExtracted,  // Skip if we extracted from email
     onSubmit: async (value) => {
       // Trigger company enrichment
       await enrichCompanyData(value);
@@ -361,7 +429,8 @@ What's the name of your company?`,
   {
     section: 1,
     type: 'enrichment',
-    content: `Let me look that up...`
+    content: `Let me look that up...`,
+    skipIf: (data) => !!data.emailDomainExtracted  // Skip if we already enriched from email
   },
   {
     section: 1,
@@ -376,7 +445,8 @@ What's the name of your company?`,
       { value: 'consultant', label: 'Consultant / Advisor' },
       { value: 'bdr-ae', label: 'BDR / AE' },
       { value: 'other', label: 'Other' }
-    ]
+    ],
+    skipIf: (data) => !!data.emailDomainExtracted  // Skip if already asked in email-extracted flow
   },
   {
     section: 1,
@@ -789,6 +859,13 @@ async function processNextStep() {
 
   const step = conversationFlow[currentFlowIndex];
 
+  // Check if this step should be skipped
+  if (step.skipIf && step.skipIf(state.formData)) {
+    currentFlowIndex++;
+    processNextStep();
+    return;
+  }
+
   // Update section
   if (step.section !== state.currentSection) {
     state.currentSection = step.section;
@@ -1119,6 +1196,11 @@ function setupComponentHandlers(messageDiv, step) {
         const label = card.querySelector('.chat-radio-title').textContent;
         state.formData[field] = value;
 
+        // Call onSubmit handler if present
+        if (step.onSubmit) {
+          await step.onSubmit(value);
+        }
+
         // Auto-advance for radio
         await delay(300);
         addUserMessage(label);
@@ -1163,7 +1245,11 @@ function setupComponentHandlers(messageDiv, step) {
       });
     });
 
-    continueBtn.addEventListener('click', () => {
+    continueBtn.addEventListener('click', async () => {
+      // Call onSubmit handler if present
+      if (step.onSubmit) {
+        await step.onSubmit(Array.from(selected));
+      }
       addUserMessage(`Selected: ${Array.from(selected).join(', ')}`);
       currentFlowIndex++;
       processNextStep();
@@ -1449,46 +1535,97 @@ function removeTypingIndicator(id) {
 // COMPANY ENRICHMENT
 // ============================================
 
-// Fun rotating loading messages
-const LOADING_MESSAGES = [
-  "Fetching company information...",
-  "Comboputalating the data streams...",
-  "Harvesting insights from the web...",
-  "Pondering your business model...",
-  "Triangulating market position...",
-  "Consulting the digital oracle...",
-  "Cross-referencing the interwebs...",
-  "Decoding corporate DNA...",
-  "Scanning for partnership signals...",
-  "Calibrating opportunity sensors...",
-  "Synthesizing company intel...",
-  "Mining the data goldmine...",
-  "Channeling business vibes...",
-  "Assembling the puzzle pieces...",
-  "Percolating insights...",
-  "Reverse engineering success patterns...",
-  "Activating research mode...",
-  "Crunching the numbers...",
-  "Distilling the essence...",
-  "Quantum analyzing your profile..."
-];
+// Enrichment Action List - shows real-time progress during data gathering
+class EnrichmentActionList {
+  constructor(container) {
+    this.container = container;
+    this.actions = [];
+    this.render();
+  }
 
+  render() {
+    this.listEl = document.createElement('div');
+    this.listEl.className = 'enrichment-action-list';
+    this.container.appendChild(this.listEl);
+  }
+
+  addAction(id, text, status = 'pending') {
+    const action = { id, text, status, subActions: [] };
+    this.actions.push(action);
+    this.renderAction(action);
+    return action;
+  }
+
+  renderAction(action) {
+    const actionEl = document.createElement('div');
+    actionEl.className = `enrichment-action enrichment-action-${action.status}`;
+    actionEl.id = `action-${action.id}`;
+    actionEl.innerHTML = `
+      <span class="action-icon">${this.getIcon(action.status)}</span>
+      <span class="action-text">${action.text}</span>
+      <div class="action-sub-list"></div>
+    `;
+    this.listEl.appendChild(actionEl);
+    scrollToBottom();
+  }
+
+  getIcon(status) {
+    switch (status) {
+      case 'pending': return '<span class="action-spinner"></span>';
+      case 'in_progress': return '<span class="action-spinner"></span>';
+      case 'complete': return '✓';
+      case 'found': return '✓';
+      case 'error': return '✗';
+      case 'skipped': return '○';
+      default: return '•';
+    }
+  }
+
+  updateAction(id, status, newText = null) {
+    const actionEl = document.getElementById(`action-${id}`);
+    if (actionEl) {
+      const action = this.actions.find(a => a.id === id);
+      if (action) action.status = status;
+
+      actionEl.className = `enrichment-action enrichment-action-${status}`;
+      actionEl.querySelector('.action-icon').innerHTML = this.getIcon(status);
+      if (newText) {
+        actionEl.querySelector('.action-text').textContent = newText;
+      }
+    }
+  }
+
+  addSubAction(parentId, text) {
+    const actionEl = document.getElementById(`action-${parentId}`);
+    if (actionEl) {
+      const subList = actionEl.querySelector('.action-sub-list');
+      const subEl = document.createElement('div');
+      subEl.className = 'enrichment-sub-action';
+      subEl.innerHTML = `<span class="sub-action-arrow">↳</span> ${text}`;
+      subList.appendChild(subEl);
+      scrollToBottom();
+    }
+  }
+
+  complete() {
+    // Mark all remaining pending actions as complete or skipped
+    this.actions.forEach(action => {
+      if (action.status === 'pending' || action.status === 'in_progress') {
+        this.updateAction(action.id, 'complete');
+      }
+    });
+  }
+}
+
+// Global reference to current action list
+let currentActionList = null;
+
+// Legacy functions for backwards compatibility
 let loadingMessageInterval = null;
 let loadingMessageIndex = 0;
 
 function startLoadingMessageRotation() {
-  loadingMessageIndex = 0;
-  loadingMessageInterval = setInterval(() => {
-    const textEl = document.querySelector('.enrichment-loading-text');
-    if (textEl) {
-      loadingMessageIndex = (loadingMessageIndex + 1) % LOADING_MESSAGES.length;
-      textEl.textContent = LOADING_MESSAGES[loadingMessageIndex];
-      textEl.style.opacity = '0';
-      setTimeout(() => {
-        textEl.style.opacity = '1';
-      }, 100);
-    }
-  }, 2000);
+  // No longer used - kept for backwards compatibility
 }
 
 function stopLoadingMessageRotation() {
@@ -1501,25 +1638,33 @@ function stopLoadingMessageRotation() {
 async function enrichCompanyData(website) {
   const typingId = addTypingIndicator();
 
-  // Add loading message
+  // Add action list container
   const loadingDiv = document.createElement('div');
   loadingDiv.className = 'message message-assistant';
   loadingDiv.id = 'enrichment-loading';
   loadingDiv.innerHTML = `
     <div class="message-content">
-      <div class="message-text">Let me look up ${website}...</div>
-      <div class="enrichment-loading">
-        <div class="enrichment-spinner"></div>
-        <div class="enrichment-loading-text">${LOADING_MESSAGES[0]}</div>
-      </div>
+      <div class="message-text">Let me research <strong>${website}</strong>...</div>
+      <div class="enrichment-actions-container"></div>
     </div>
   `;
 
-  await delay(500);
-  startLoadingMessageRotation();
+  await delay(300);
   removeTypingIndicator(typingId);
   chatMessagesInner.appendChild(loadingDiv);
   scrollToBottom();
+
+  // Initialize action list
+  const actionsContainer = loadingDiv.querySelector('.enrichment-actions-container');
+  currentActionList = new EnrichmentActionList(actionsContainer);
+
+  // Add initial actions
+  currentActionList.addAction('company-api', 'Fetching company data...', 'in_progress');
+  currentActionList.addAction('nav-scan', 'Scanning website structure...', 'pending');
+  currentActionList.addAction('customers', 'Discovering customers...', 'pending');
+  currentActionList.addAction('partners', 'Analyzing partner ecosystem...', 'pending');
+  currentActionList.addAction('profile', 'Building partnership profile...', 'pending');
+  currentActionList.addAction('claude-enhance', 'Creating Better Together story...', 'pending');
 
   const domain = website.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
 
@@ -1530,50 +1675,73 @@ async function enrichCompanyData(website) {
       try {
         console.log('🔍 Calling Companies API for domain:', domain);
 
-        // Use CORS proxy to bypass browser restrictions
-        // The Companies API doesn't support CORS for browser requests
-        // Use token as query parameter (more reliable with CORS proxy)
         const targetUrl = `https://api.thecompaniesapi.com/v2/companies/${domain}?token=${COMPANIES_API_KEY}`;
         const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-        console.log('🔍 API URL (via CORS proxy):', proxyUrl);
 
         const response = await fetch(proxyUrl, {
-          headers: {
-            'Accept': 'application/json'
-          }
+          headers: { 'Accept': 'application/json' }
         });
-
-        console.log('🔍 Companies API Response Status:', response.status, response.statusText);
 
         if (response.ok) {
           const data = await response.json();
-          console.log('✅ Companies API SUCCESS - Data received:', data);
-          console.log('📊 Data keys:', Object.keys(data));
-          if (data.about) console.log('📊 About keys:', Object.keys(data.about));
-          if (data.finances) console.log('📊 Finances keys:', Object.keys(data.finances));
-          if (data.analytics) console.log('📊 Analytics keys:', Object.keys(data.analytics));
+          if (currentActionList) {
+            const dataPoints = Object.keys(data).length + (data.about ? Object.keys(data.about).length : 0);
+            currentActionList.updateAction('company-api', 'complete', `Found ${dataPoints} data points from API`);
+          }
           return data;
         } else {
-          const errorText = await response.text();
-          console.error('❌ Companies API Error Response:', response.status, errorText);
-          throw new Error(`API Error: ${response.status} - ${errorText}`);
+          throw new Error(`API Error: ${response.status}`);
         }
       } catch (error) {
-        // Try Claude API as fallback
         console.error('❌ Companies API failed:', error.message);
-        console.log('🔄 Falling back to Claude AI...');
+        if (currentActionList) {
+          currentActionList.updateAction('company-api', 'error', 'API unavailable, using AI fallback...');
+        }
         return { fallbackToClaude: true, website };
       }
     })(),
 
-    // Customer logo scraping (parallel)
-    scrapeCustomerLogos(website),
+    // Customer logo scraping (parallel) - with action list updates
+    (async () => {
+      if (currentActionList) currentActionList.updateAction('customers', 'in_progress');
+      const result = await scrapeCustomerLogos(website);
+      if (currentActionList) {
+        if (result && result.length > 0) {
+          currentActionList.updateAction('customers', 'complete', `Found ${result.length} customers`);
+        } else {
+          currentActionList.updateAction('customers', 'complete', 'No customer logos found');
+        }
+      }
+      return result;
+    })(),
 
     // Competitor & partner fit detection (parallel)
-    detectCompetitorsAndFitSignals(website),
+    (async () => {
+      if (currentActionList) currentActionList.updateAction('partners', 'in_progress');
+      const result = await detectCompetitorsAndFitSignals(website);
+      if (currentActionList) {
+        if (result && (result.competitors?.length > 0 || result.readinessScore > 0)) {
+          currentActionList.updateAction('partners', 'complete', `Partner readiness: ${result.readinessScore}%`);
+        } else {
+          currentActionList.updateAction('partners', 'complete', 'Partner ecosystem analyzed');
+        }
+      }
+      return result;
+    })(),
 
-    // Partnership profile scraping (parallel) - solutions, roles, industries, use cases
-    scrapePartnershipProfile(website)
+    // Partnership profile scraping (parallel) - with deep nav-based scraping
+    (async () => {
+      if (currentActionList) {
+        currentActionList.updateAction('nav-scan', 'in_progress');
+        currentActionList.updateAction('profile', 'in_progress');
+      }
+      const result = await scrapePartnershipProfileDeep(website);
+      if (currentActionList) {
+        currentActionList.updateAction('nav-scan', 'complete', `Scanned ${result?.pagesScraped?.length || 0} pages`);
+        currentActionList.updateAction('profile', 'complete', 'Partnership profile built');
+      }
+      return result;
+    })()
   ]);
 
   // Handle company enrichment result
@@ -1632,21 +1800,93 @@ async function enrichCompanyData(website) {
   }
 
   // Handle partnership profile result ("Better Together" insights)
-  if (partnershipResult.status === 'fulfilled' && partnershipResult.value) {
-    const profile = partnershipResult.value;
+  // Use Claude to enhance ALL gathered data for high-quality insights
+  const scrapedProfile = partnershipResult.status === 'fulfilled' ? partnershipResult.value : null;
+  const customers = customerResult.status === 'fulfilled' ? customerResult.value : [];
+  const competitors = competitorResult.status === 'fulfilled' ? competitorResult.value : null;
 
-    // Only display if we found meaningful data
-    const hasData = profile.targetRoles.length > 0 ||
-                    profile.targetIndustries.length > 0 ||
-                    profile.useCases.length > 0;
+  // Enhance data with Claude AI
+  const enhancedData = await enhanceDataWithClaude(companyData, scrapedProfile, customers, competitors);
+
+  if (enhancedData) {
+    // Store enhanced data for later use
+    state.enhancedPartnerData = enhancedData;
+
+    // Check if we have the new JVP Stories format
+    if (enhancedData.jvpStories && enhancedData.jvpStories.length > 0) {
+      // New JVP Story format - extract profile data from stories
+      const primaryStory = enhancedData.jvpStories[0];
+
+      const enhancedProfile = {
+        targetRoles: [...new Set(enhancedData.jvpStories.map(s => s.persona?.title).filter(Boolean))],
+        targetIndustries: [...new Set(enhancedData.jvpStories.map(s => s.persona?.vertical).filter(Boolean))],
+        useCases: enhancedData.jvpStories.map(s => s.useCase),
+        services: scrapedProfile?.services || [],
+        customers: scrapedProfile?.customers || [],
+        gtmMotion: scrapedProfile?.gtmMotion,
+        companySize: primaryStory.persona?.companySize || scrapedProfile?.companySize,
+        language: scrapedProfile?.language || {},
+        pagesScraped: scrapedProfile?.pagesScraped || []
+      };
+
+      // Build insights from partner summary
+      const enhancedInsights = {
+        partnershipType: enhancedData.partnerSummary?.recommendedPartnershipType || 'referral',
+        gtmFit: enhancedData.partnerSummary?.gtmAlignment || 'moderate',
+        primaryValueDriver: enhancedData.partnerSummary?.primaryValueDriver || '',
+        enablementPriority: enhancedData.partnerSummary?.enablementPriority || ''
+      };
+
+      // Display the new JVP Story card
+      await delay(500);
+      displayEnhancedPartnershipCard(enhancedProfile, enhancedInsights, enhancedData);
+
+    } else {
+      // Legacy format fallback - build from old structure
+      const enhancedProfile = {
+        targetRoles: enhancedData.enhancedProfile?.targetRoles || scrapedProfile?.targetRoles || [],
+        targetIndustries: enhancedData.enhancedProfile?.targetIndustries || scrapedProfile?.targetIndustries || [],
+        useCases: enhancedData.enhancedProfile?.problemsSolved || scrapedProfile?.useCases || [],
+        services: enhancedData.enhancedProfile?.services || scrapedProfile?.services || [],
+        customers: enhancedData.enhancedProfile?.customers || scrapedProfile?.customers || [],
+        gtmMotion: enhancedData.enhancedProfile?.gtmMotion || scrapedProfile?.gtmMotion,
+        companySize: enhancedData.enhancedProfile?.companySize || scrapedProfile?.companySize,
+        language: scrapedProfile?.language || {},
+        pagesScraped: scrapedProfile?.pagesScraped || []
+      };
+
+      const enhancedInsights = {
+        partnershipType: enhancedData.betterTogether?.partnershipType || 'referral',
+        whyPartner: enhancedData.betterTogether?.whyPartner || '',
+        jointValueProp: enhancedData.betterTogether?.jointValueProp || '',
+        complementaryCapabilities: (enhancedData.betterTogether?.complementaryCapabilities || []).map(cap => ({
+          useCase: cap.theirCapability,
+          insight: cap.salesAiAdds,
+          type: 'complement'
+        })),
+        sharedICP: enhancedData.betterTogether?.sharedICP || '',
+        gtmFit: enhancedData.betterTogether?.gtmFit || 'moderate',
+        gtmFitReason: enhancedData.betterTogether?.gtmFitReason || '',
+        overlappingRoles: enhancedProfile.targetRoles,
+        industryOpportunities: enhancedProfile.targetIndustries.map(ind => ({ industry: ind, priority: 'high' })),
+        salesAiUseCases: [],
+        dataQuality: enhancedData.confidence?.dataQuality || 'medium'
+      };
+
+      // Display legacy partnership card (will fall back to simple display)
+      await delay(500);
+      displayEnhancedPartnershipCard(enhancedProfile, enhancedInsights, enhancedData);
+    }
+  } else if (scrapedProfile) {
+    // Fallback to basic profile if Claude enhancement failed
+    const hasData = scrapedProfile.targetRoles?.length > 0 ||
+                    scrapedProfile.targetIndustries?.length > 0 ||
+                    scrapedProfile.useCases?.length > 0;
 
     if (hasData) {
-      // Generate "Better Together" insights
-      const insights = generateBetterTogetherInsights(profile, state.enrichedCompany);
-
-      // Display the partnership profile card
+      const insights = generateBetterTogetherInsights(scrapedProfile, state.enrichedCompany);
       await delay(500);
-      displayPartnershipProfileCard(profile, insights);
+      displayPartnershipProfileCard(scrapedProfile, insights);
     }
   }
 }
@@ -1730,6 +1970,336 @@ Only include fields you have reasonable confidence about. Return ONLY the JSON o
     chatMessagesInner.appendChild(errorDiv);
     scrollToBottom();
   }
+}
+
+// ============================================
+// CLAUDE-ENHANCED JVP STORY GENERATOR
+// Takes all gathered data and produces Better Together stories
+// ============================================
+
+// SalesAI Use Case Taxonomy for validation
+const SALESAI_USE_CASES = {
+  perfect: [
+    'Speed-to-Lead',
+    'Demo/Meeting Booking',
+    'CRM Lead Reactivation',
+    'No-Show Rescheduling',
+    'Customer & Tech Support',
+    'Renewal/Retention',
+    'Upsell/Cross-Sell'
+  ],
+  ok: [
+    'Lead Qualification',
+    'B2B Cold Outbound',
+    'Front Desk/Receptionist'
+  ],
+  doNotAssign: [
+    'Full sales-cycle replacement',
+    'Team/headcount replacement',
+    'Billing/collections',
+    'Lead generation',
+    'Residential cold calling',
+    'Advanced technical support'
+  ]
+};
+
+async function enhanceDataWithClaude(companyData, scrapedProfile, customerData, competitorData) {
+  if (currentActionList) {
+    currentActionList.addAction('claude-enhance', 'Generating Better Together stories...', 'in_progress');
+  }
+
+  const companyName = companyData?.name || state.formData.companyName || state.formData.companyWebsite;
+  const domain = state.formData.companyWebsite || companyData?.domain;
+
+  // Build comprehensive context from all gathered data
+  const dataContext = {
+    company: {
+      name: companyName,
+      domain: domain,
+      description: companyData?.about?.description || companyData?.description || '',
+      industry: companyData?.about?.primaryIndustry || companyData?.industry || '',
+      employees: companyData?.about?.employeesRange || companyData?.employeesRange || '',
+      tags: companyData?.about?.tags || companyData?.tags || []
+    },
+    scraped: {
+      industries: scrapedProfile?.targetIndustries || [],
+      services: scrapedProfile?.services || [],
+      roles: scrapedProfile?.targetRoles || [],
+      useCases: scrapedProfile?.useCases || [],
+      customers: scrapedProfile?.customers || [],
+      language: scrapedProfile?.language || {},
+      pagesScraped: scrapedProfile?.pagesScraped?.length || 0
+    },
+    customers: customerData || [],
+    competitors: competitorData?.competitors || [],
+    partnerSignals: competitorData?.fitSignals || {}
+  };
+
+  // Build the comprehensive JVP Story Generator prompt
+  const jvpPrompt = buildJVPStoryPrompt(dataContext, companyName);
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 4096,
+        messages: [{
+          role: 'user',
+          content: jvpPrompt
+        }]
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      const content = result.content[0].text;
+
+      try {
+        // Clean the response - sometimes Claude adds markdown code blocks
+        let cleanContent = content.trim();
+        if (cleanContent.startsWith('```json')) {
+          cleanContent = cleanContent.slice(7);
+        }
+        if (cleanContent.startsWith('```')) {
+          cleanContent = cleanContent.slice(3);
+        }
+        if (cleanContent.endsWith('```')) {
+          cleanContent = cleanContent.slice(0, -3);
+        }
+
+        const enhanced = JSON.parse(cleanContent.trim());
+
+        if (currentActionList) {
+          currentActionList.updateAction('claude-enhance', 'complete', `Generated ${enhanced.jvpStories?.length || 0} use case stories`);
+          if (enhanced.partnerSummary?.gtmAlignment) {
+            currentActionList.addSubAction('claude-enhance', `GTM Alignment: ${enhanced.partnerSummary.gtmAlignment}`);
+          }
+        }
+
+        console.log('Claude JVP Stories:', enhanced);
+        return enhanced;
+
+      } catch (parseError) {
+        console.error('Failed to parse Claude response:', parseError, content);
+        if (currentActionList) {
+          currentActionList.updateAction('claude-enhance', 'error', 'AI parsing failed');
+        }
+        return null;
+      }
+    } else {
+      throw new Error(`Claude API error: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Claude JVP generation failed:', error);
+    if (currentActionList) {
+      currentActionList.updateAction('claude-enhance', 'error', 'AI analysis failed');
+    }
+    return null;
+  }
+}
+
+// Build the comprehensive JVP Story Generator prompt - EXACT framework from partner requirements
+function buildJVPStoryPrompt(dataContext, companyName) {
+  return `You are analyzing a potential partner company for SalesAI, an AI-powered voice agent platform for sales and customer support. Your task is to generate complete "Better Together" joint value proposition stories that partners can use in co-selling motions.
+
+## CONTEXT: What SalesAI Does
+
+SalesAI deploys AI voice agents that handle repetitive, time-sensitive sales and support touchpoints. Key capabilities:
+- Always-on engagement (every lead answered in seconds, 24/7)
+- Unlimited scale (1,800 calls per minute capacity)
+- Human-like conversations that adapt to context
+- Seamless handoffs to human reps
+- Native CRM integration (HubSpot, Salesforce, GHL primary)
+
+## SALESAI USE CASE TAXONOMY
+
+You must ONLY assign use cases from this official taxonomy:
+
+### PERFECT FIT (prioritize these)
+| Use Case | Trigger Event | SalesAI Action | Outcome |
+|----------|---------------|----------------|---------|
+| Speed-to-Lead | New form fill, demo request, inbound inquiry | Instant outbound call within 60 seconds | Qualification + booking while lead is hot |
+| Demo/Meeting Booking | Qualified lead needs appointment | AI schedules directly to rep calendar | Meetings booked 24/7, no back-and-forth |
+| CRM Lead Reactivation | Stale MQLs (2-6 months old), closed-lost, no-shows | Multi-touch call sequences | Pipeline recovery from dormant database |
+| No-Show Rescheduling | Prospect misses scheduled meeting | Immediate outreach to rebook | Recovered meetings, reduced pipeline leak |
+| Customer & Tech Support | Inbound support calls, ticket overflow | AI handles Tier 1, routes complex issues | Reduced wait times, scaled support |
+| Renewal/Retention | Contract coming due, churn signals | Proactive outreach to existing customers | Improved retention, reduced churn |
+| Upsell/Cross-Sell | Expansion signals in customer base | AI identifies and engages opportunities | Increased ARPU from existing accounts |
+
+### OK FIT (use when Perfect fit isn't available)
+| Use Case | When to Use |
+|----------|-------------|
+| Lead Qualification | High-volume inbound that needs scoring before rep engagement |
+| B2B Cold Outbound | Only when partner has proven cold call system/lists |
+| Front Desk/Receptionist | Service businesses needing call handling |
+
+### DO NOT ASSIGN
+- Full sales-cycle replacement
+- Team/headcount replacement positioning
+- Billing/collections
+- Lead generation (creating net-new leads)
+- Residential cold calling
+- Advanced technical support
+
+## SALESAI ICP CRITERIA
+
+### Industry Fit
+- PERFECT: Professional Services, Business Services, SaaS/Tech, Home Services, Marketing/Advertising
+- OK: Heavy-call industries (Real Estate, Mortgage, Medical, Legal, Recruiting, Fund Raising)
+- AVOID: <200 calls/month businesses
+
+### Lead Source Fit
+- PERFECT: Paid Ads, SEO/Website, <6mo CRM leads, Current customers, Event registrants, Trade shows, Inbound calls
+- OK: Co-op leads, Older CRM leads
+- AVOID: Purchased/scraped lists, General cold data
+
+### Tech Stack Fit
+- PERFECT: HubSpot, Salesforce, Go High Level
+- OK: Zoho, Pipedrive, Close (API-enabled)
+- AVOID: Closed systems, No CRM
+
+---
+
+## PARTNER DATA INPUT
+
+Company: ${JSON.stringify(dataContext.company, null, 2)}
+
+Scraped Profile:
+- Industries: ${dataContext.scraped.industries.join(', ') || 'None detected'}
+- Services: ${dataContext.scraped.services.join(', ') || 'None detected'}
+- Target Roles: ${dataContext.scraped.roles.join(', ') || 'None detected'}
+- Use Cases: ${dataContext.scraped.useCases.join(', ') || 'None detected'}
+- Customers: ${dataContext.scraped.customers.slice(0, 10).join(', ') || 'None detected'}
+- Tagline: ${dataContext.scraped.language?.tagline || 'Not found'}
+- Hero Statements: ${dataContext.scraped.language?.heroStatements?.slice(0, 3).join(' | ') || 'None'}
+- Pages Analyzed: ${dataContext.scraped.pagesScraped}
+
+Known Customers: ${dataContext.customers.slice(0, 8).map(c => c.name || c).join(', ') || 'None found'}
+
+Tech Partners Detected: ${dataContext.competitors.join(', ') || 'None'}
+Partner Signals: ${JSON.stringify(dataContext.partnerSignals)}
+
+---
+
+## YOUR TASK
+
+Given the partner data above, generate a structured analysis with exactly 3 Better Together stories.
+
+### Step 1: Persona Selection
+
+From the partner's target roles, industries, and customer evidence, identify the TOP 3 buyer personas that:
+1. The partner demonstrably serves (evidence from customers, case studies, services)
+2. Overlap with SalesAI's ICP verticals
+3. Have clear pain points that map to SalesAI use cases
+
+Rank personas by:
+- Partner expertise evidence (weight: 40%)
+- SalesAI ICP alignment (weight: 35%)
+- Revenue potential for joint deals (weight: 25%)
+
+### Step 2: Use Case Matching
+
+For each selected persona, assign exactly ONE SalesAI use case:
+1. Map the partner's services to potential SalesAI use cases
+2. Identify which lead sources/triggers the partner influences
+3. Select the HIGHEST-FIT use case from "Perfect" tier first
+4. Only fall back to "OK" tier if no Perfect fit exists
+
+### Step 3: Better Together Story Generation
+
+For each persona + use case combination, generate a complete narrative following this EXACT JSON structure:
+
+{
+  "jvpStories": [
+    {
+      "rank": 1,
+      "useCase": "EXACT use case name from taxonomy",
+      "useCaseTier": "perfect|ok",
+
+      "persona": {
+        "title": "Specific job title",
+        "vertical": "Industry vertical",
+        "seniority": "C-Level|VP|Director|Manager",
+        "companySize": "SMB|Mid-Market|Enterprise",
+        "commonTech": ["CRMs and tools they likely use"],
+        "organizationalGoals": ["2-3 business objectives they own"]
+      },
+
+      "currentState": {
+        "useCase": "What is our joint customer trying to do?",
+        "problemBlocker": "...but [problem/progress blocker]",
+        "currentWay": "How are they doing it today with only ${companyName}?",
+        "problems": ["What problems do they face when they do it?"],
+        "limitation": "So what... because [how is a single solution limiting]?"
+      },
+
+      "empathyMap": {
+        "say": ["What they explicitly ask for - direct quotes"],
+        "think": ["What they're really thinking - internal monologue"],
+        "feel": ["Emotional states - frustrated, anxious, overwhelmed"],
+        "do": ["Observable behaviors and workarounds"]
+      },
+
+      "futureState": {
+        "betterTogetherCapability": "What capability does ${companyName} + SalesAI enable?",
+        "partnerContribution": "What ${companyName} brings to the solution",
+        "salesAiContribution": "What SalesAI adds that they couldn't do alone",
+        "connectedFeatures": "How the products technically integrate/complement",
+        "benefits": ["Specific, quantifiable outcomes"],
+        "doNothingRisk": "What happens if they just do nothing?"
+      },
+
+      "jointValueProp": "${companyName} + SalesAI = [Specific outcome statement]",
+
+      "proofPoints": {
+        "partnerEvidence": "Customer names, case studies, or capabilities that prove partner expertise",
+        "salesAiEvidence": "Relevant SalesAI metrics (e.g., 'SalesAI reactivation campaigns generate $535K+ closed revenue')",
+        "sharedCustomerProfile": "Description of ideal joint customer"
+      },
+
+      "confidence": {
+        "personaFit": "high|medium|low",
+        "useCaseFit": "high|medium|low",
+        "dataQuality": "high|medium|low",
+        "reasoning": "Why this persona + use case combination"
+      }
+    }
+  ],
+
+  "partnerSummary": {
+    "recommendedPartnershipType": "referral|channel|integrated",
+    "partnershipTypeReason": "Why this type fits their GTM",
+    "gtmAlignment": "strong|moderate|developing",
+    "primaryValueDriver": "What makes this partnership valuable",
+    "enablementPriority": "What the partner needs to succeed"
+  }
+}
+
+## QUALITY RULES
+
+1. **Specificity over generality**: Use the partner's actual language, customer names, and services—not generic statements
+2. **Evidence-based personas**: Only select personas you can prove from the data (customers, case studies, stated verticals)
+3. **Realistic empathy maps**: The "Say/Think/Feel/Do" should reflect real buyer psychology, not marketing speak
+4. **Quantified benefits**: Include specific metrics where possible (response time, conversion rates, hours saved)
+5. **Honest confidence scoring**: If data is sparse, say so—don't fabricate certainty
+6. **Do Nothing Risk must create urgency**: Make the cost of inaction concrete and painful
+
+## CONSTRAINTS
+
+- Generate EXACTLY 3 JVP stories (not more, not less)
+- Each story must use a DIFFERENT SalesAI use case (no duplicates)
+- Personas must be distinct (different titles, not just different industries for same role)
+- If partner data doesn't support 3 high-confidence stories, generate what you can and mark others as "low confidence"
+- Never assign use cases from the "DO NOT ASSIGN" list
+
+Return ONLY valid JSON, no other text.`;
 }
 
 // Add AI-generated enrichment card (with AI badge)
@@ -4097,6 +4667,269 @@ async function smartFetchMultiplePages(pages, options = {}) {
 }
 
 // ============================================
+// DEEP PARTNERSHIP PROFILE SCRAPING
+// Uses navigation as a roadmap to scrape the most valuable pages
+// ============================================
+
+async function scrapePartnershipProfileDeep(website) {
+  const domain = website.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
+  const baseUrl = `https://${domain}`;
+
+  console.log('Deep scraping partnership profile for:', baseUrl);
+
+  const profile = {
+    targetRoles: [],
+    targetIndustries: [],
+    useCases: [],
+    productCapabilities: [],
+    services: [],           // NEW: Actual services they offer
+    customers: [],          // NEW: Real customer names from case studies
+    certifications: [],     // NEW: Partner certifications
+    language: {
+      tagline: null,
+      heroStatements: [],
+      painPoints: [],
+      outcomes: [],
+      actionVerbs: [],
+      customerQuotes: [],
+      keyPhrases: []
+    },
+    gtmMotion: null,
+    companySize: null,
+    valueProps: [],
+    pagesScraped: []
+  };
+
+  try {
+    // Step 1: Fetch homepage and detect navigation structure
+    if (currentActionList) {
+      currentActionList.addSubAction('nav-scan', 'Fetching homepage...');
+    }
+
+    const homeResult = await smartFetchWebpage(baseUrl);
+    if (!homeResult.success) {
+      console.log('Could not fetch homepage for deep scraping');
+      return profile;
+    }
+
+    profile.pagesScraped.push(baseUrl);
+
+    // Extract language from homepage
+    extractPartnerLanguage(homeResult.html, profile);
+
+    // Step 2: Detect navigation links - this is our scraping roadmap
+    const navLinks = detectNavbarLinks(homeResult.html, baseUrl);
+
+    if (currentActionList) {
+      const totalPages = (navLinks.customerPages?.length || 0) +
+                        (navLinks.solutionsByIndustry?.length || 0) +
+                        (navLinks.useCasePages?.length || 0);
+      currentActionList.addSubAction('nav-scan', `Found ${totalPages} priority pages to analyze`);
+    }
+
+    // Step 3: Deep scrape CASE STUDIES for real customer names
+    const caseStudyPages = navLinks.customerPages || [];
+    if (caseStudyPages.length > 0 && currentActionList) {
+      currentActionList.addSubAction('nav-scan', `Scraping ${Math.min(caseStudyPages.length, 3)} case study pages...`);
+    }
+
+    for (const page of caseStudyPages.slice(0, 3)) {
+      try {
+        const pageResult = await smartFetchWebpage(page.url);
+        if (pageResult.success) {
+          profile.pagesScraped.push(page.url);
+          extractCustomersFromCaseStudies(pageResult.html, profile);
+        }
+      } catch (e) {
+        console.log('Failed to scrape case study page:', page.url);
+      }
+    }
+
+    // Step 4: Deep scrape INDUSTRY pages for expertise
+    const industryPages = navLinks.solutionsByIndustry || [];
+    if (industryPages.length > 0 && currentActionList) {
+      currentActionList.addSubAction('nav-scan', `Analyzing ${industryPages.length} industry pages...`);
+    }
+
+    for (const page of industryPages.slice(0, 5)) {
+      // Extract industry from nav link text directly
+      const industryName = normalizeIndustry(page.text);
+      if (industryName && !profile.targetIndustries.includes(industryName)) {
+        profile.targetIndustries.push(industryName);
+      }
+    }
+
+    // Step 5: Deep scrape SERVICES/SOLUTIONS pages
+    const servicePages = [...(navLinks.useCasePages || []), ...(navLinks.productPages || [])];
+    if (servicePages.length > 0 && currentActionList) {
+      currentActionList.addSubAction('nav-scan', `Extracting ${servicePages.length} service offerings...`);
+    }
+
+    for (const page of servicePages.slice(0, 5)) {
+      const serviceName = normalizeService(page.text);
+      if (serviceName && !profile.services.includes(serviceName)) {
+        profile.services.push(serviceName);
+      }
+    }
+
+    // Step 6: Extract target roles from role-based solution pages
+    const rolePages = navLinks.solutionsByRole || [];
+    for (const page of rolePages) {
+      const roleName = normalizeRole(page.text);
+      if (roleName && !profile.targetRoles.includes(roleName)) {
+        profile.targetRoles.push(roleName);
+      }
+    }
+
+    console.log('Deep scraping complete:', {
+      industries: profile.targetIndustries,
+      services: profile.services,
+      roles: profile.targetRoles,
+      customers: profile.customers,
+      pagesScraped: profile.pagesScraped.length
+    });
+
+    return profile;
+
+  } catch (error) {
+    console.error('Deep scraping failed:', error);
+    // Fall back to basic scraping
+    return await scrapePartnershipProfile(website);
+  }
+}
+
+// Helper: Extract customers from case study pages
+function extractCustomersFromCaseStudies(html, profile) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+
+  // Look for customer names in case study titles, headings, logos
+  const selectors = [
+    '.case-study-title', '.case-study h2', '.case-study h3',
+    '.client-name', '.customer-name', '.company-name',
+    '[class*="case-study"] h2', '[class*="case-study"] h3',
+    '.portfolio-item h2', '.portfolio-item h3',
+    '.work-item h2', '.work-item h3'
+  ];
+
+  selectors.forEach(selector => {
+    try {
+      doc.querySelectorAll(selector).forEach(el => {
+        const text = el.textContent?.trim();
+        if (text && text.length > 2 && text.length < 100) {
+          // Filter out generic text
+          const genericTerms = ['case study', 'case studies', 'read more', 'learn more', 'view all', 'see all'];
+          if (!genericTerms.some(term => text.toLowerCase().includes(term))) {
+            if (!profile.customers.includes(text)) {
+              profile.customers.push(text);
+            }
+          }
+        }
+      });
+    } catch (e) {}
+  });
+
+  // Also look for customer logos with alt text
+  doc.querySelectorAll('img[alt]').forEach(img => {
+    const alt = img.alt?.trim();
+    if (alt && alt.length > 2 && alt.length < 50) {
+      const skipTerms = ['logo', 'icon', 'badge', 'award', 'partner', 'certified'];
+      const hasSkipTerm = skipTerms.some(term => alt.toLowerCase().includes(term));
+      // Only include if it looks like a company name
+      if (!hasSkipTerm && /^[A-Z]/.test(alt)) {
+        if (!profile.customers.includes(alt)) {
+          profile.customers.push(alt);
+        }
+      }
+    }
+  });
+}
+
+// Helper: Normalize industry names
+function normalizeIndustry(text) {
+  const industryMap = {
+    'healthcare': 'Healthcare',
+    'health care': 'Healthcare',
+    'senior living': 'Senior Living',
+    'manufacturing': 'Manufacturing',
+    'saas': 'SaaS',
+    'software': 'SaaS',
+    'technology': 'Technology',
+    'tech': 'Technology',
+    'finance': 'Financial Services',
+    'financial': 'Financial Services',
+    'financial services': 'Financial Services',
+    'fintech': 'FinTech',
+    'franchise': 'Franchise',
+    'education': 'Education',
+    'edtech': 'EdTech',
+    'ecommerce': 'E-commerce',
+    'e-commerce': 'E-commerce',
+    'retail': 'Retail',
+    'real estate': 'Real Estate',
+    'professional services': 'Professional Services',
+    'legal': 'Legal',
+    'insurance': 'Insurance',
+    'media': 'Media & Entertainment',
+    'entertainment': 'Media & Entertainment'
+  };
+
+  const normalized = text?.toLowerCase().trim();
+  return industryMap[normalized] || (normalized && normalized.length > 2 && normalized.length < 30 ?
+    text.charAt(0).toUpperCase() + text.slice(1) : null);
+}
+
+// Helper: Normalize service names
+function normalizeService(text) {
+  const serviceMap = {
+    'demand generation': 'Demand Generation',
+    'demand gen': 'Demand Generation',
+    'sales enablement': 'Sales Enablement',
+    'revenue operations': 'Revenue Operations',
+    'revops': 'Revenue Operations',
+    'customer success': 'Customer Success',
+    'paid media': 'Paid Media',
+    'seo': 'SEO',
+    'content marketing': 'Content Marketing',
+    'web development': 'Web Development',
+    'website development': 'Web Development',
+    'pr': 'Public Relations',
+    'public relations': 'Public Relations',
+    'hubspot': 'HubSpot Services',
+    'hubspot onboarding': 'HubSpot Onboarding',
+    'crm': 'CRM Implementation',
+    'integrations': 'Integrations',
+    'migrations': 'Data Migration',
+    'training': 'Training & Enablement'
+  };
+
+  const normalized = text?.toLowerCase().trim();
+  return serviceMap[normalized] || (normalized && normalized.length > 2 && normalized.length < 40 ?
+    text.charAt(0).toUpperCase() + text.slice(1) : null);
+}
+
+// Helper: Normalize role names
+function normalizeRole(text) {
+  const roleMap = {
+    'sales': 'Sales Teams',
+    'for sales': 'Sales Teams',
+    'marketing': 'Marketing Teams',
+    'for marketing': 'Marketing Teams',
+    'customer success': 'Customer Success',
+    'revops': 'Revenue Operations',
+    'revenue operations': 'Revenue Operations',
+    'executives': 'Executives',
+    'leadership': 'Leadership',
+    'founders': 'Founders/CEOs',
+    'agencies': 'Agencies',
+    'consultants': 'Consultants'
+  };
+
+  const normalized = text?.toLowerCase().trim();
+  return roleMap[normalized] || null;
+}
+
+// ============================================
 // CUSTOMER LOGO SCRAPING & ENRICHMENT
 // ============================================
 
@@ -5047,8 +5880,569 @@ function displayPartnerReadinessCard(competitors, fitSignals, readinessScore) {
 }
 
 // ============================================
-// PARTNERSHIP PROFILE DISPLAY ("BETTER TOGETHER")
+// JVP STORY CARD ("BETTER TOGETHER") - Interactive Use Case Selector
 // ============================================
+
+// State for the Better Together card interaction
+let btCardState = {
+  activeTab: 0,
+  validUseCases: new Set([0]),  // Best fit selected by default
+  primaryUseCase: null,
+  hasInteracted: false,
+  isSubmitted: false
+};
+
+// Display the Better Together card - exact match to V2 design
+function displayEnhancedPartnershipCard(profile, insights, enhancedData) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'message message-assistant';
+  messageDiv.id = 'better-together-card';
+
+  const companyName = state.enrichedCompany?.name || state.formData.companyName || 'Partner';
+  const stories = enhancedData?.jvpStories || [];
+  const partnerSummary = enhancedData?.partnerSummary || {};
+
+  // If no JVP stories were generated, fall back to simple display
+  if (!stories.length) {
+    displaySimplePartnershipCard(profile, insights, companyName);
+    return;
+  }
+
+  // Reset card state
+  btCardState = {
+    activeTab: 0,
+    validUseCases: new Set([0]),
+    primaryUseCase: null,
+    hasInteracted: false,
+    isSubmitted: false
+  };
+
+  // Store stories in state
+  state.jvpStories = stories;
+  state.partnerSummary = partnerSummary;
+
+  // Partnership type display
+  const partnershipLabels = {
+    'referral': 'Referral Partner',
+    'channel': 'Channel Partner',
+    'integrated': 'Integrated Partner'
+  };
+  const pTypeLabel = partnershipLabels[partnerSummary.recommendedPartnershipType] || 'Referral Partner';
+
+  // GTM fit display
+  const gtmLabels = {
+    'strong': 'Strong GTM Fit',
+    'moderate': 'Moderate GTM Fit',
+    'developing': 'Developing Fit'
+  };
+  const gtmLabel = gtmLabels[partnerSummary.gtmAlignment] || 'Moderate GTM Fit';
+
+  messageDiv.innerHTML = `
+    <div class="message-content">
+      <div class="bt-card">
+        <!-- Header -->
+        <div class="bt-header">
+          <div class="bt-header-content">
+            <svg class="bt-sparkle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path>
+            </svg>
+            <span>Here's our <strong>Better Together</strong> story with ${companyName}</span>
+          </div>
+        </div>
+
+        <!-- Use Case Navigation -->
+        <div class="bt-nav">
+          <div class="bt-nav-header">
+            <span class="bt-nav-count">We identified <strong>${stories.length} use cases</strong> for your partnership</span>
+            <span class="bt-nav-hint" id="bt-nav-hint">
+              <svg class="bt-pointer-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"></path>
+                <path d="M13 13l6 6"></path>
+              </svg>
+              Click to explore
+            </span>
+          </div>
+
+          <!-- Tab Navigation -->
+          <div class="bt-tabs-row">
+            <button class="bt-nav-arrow" id="bt-prev" disabled>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+
+            <div class="bt-tabs" id="bt-tabs">
+              ${stories.map((story, index) => `
+                <button class="bt-tab ${index === 0 ? 'active' : ''} ${!btCardState.hasInteracted && index !== 0 ? 'pulse-hint' : ''}" data-index="${index}">
+                  <div class="bt-tab-content">
+                    <span class="bt-tab-usecase">${story.useCase}</span>
+                    ${index === 0 ? `
+                      <span class="bt-tab-best-fit">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                        Best Fit
+                      </span>
+                    ` : `
+                      <span class="bt-tab-persona">${story.persona?.title || ''}</span>
+                    `}
+                  </div>
+                  <div class="bt-tab-check" style="display: ${index === 0 ? 'flex' : 'none'};">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                  </div>
+                  <div class="bt-tab-star" style="display: none;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="2">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                    </svg>
+                  </div>
+                </button>
+              `).join('')}
+            </div>
+
+            <button class="bt-nav-arrow" id="bt-next" ${stories.length <= 1 ? 'disabled' : ''}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Progress Dots -->
+          <div class="bt-dots">
+            ${stories.map((_, index) => `
+              <button class="bt-dot ${index === 0 ? 'active' : ''}" data-index="${index}"></button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="bt-content" id="bt-content">
+          ${renderBTStoryContent(stories[0], companyName)}
+        </div>
+
+        <!-- Selection Actions -->
+        <div class="bt-actions">
+          <div class="bt-action-row">
+            <button class="bt-action-btn bt-valid-btn active" id="bt-valid-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <span>Valid Use Case ✓</span>
+            </button>
+            <button class="bt-action-btn bt-primary-btn" id="bt-primary-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+              </svg>
+              <span>Set as Primary</span>
+            </button>
+          </div>
+          <div class="bt-selection-status" id="bt-selection-status">
+            1 use case selected · Will default to <span class="bt-primary-label">${stories[0].useCase}</span> for MAP
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bt-footer">
+          <div class="bt-badges">
+            <span class="bt-badge bt-badge-partnership">🤝 ${pTypeLabel}</span>
+            <span class="bt-badge bt-badge-gtm">👍 ${gtmLabel}</span>
+          </div>
+          <button class="bt-confirm-btn" id="bt-confirm-btn">
+            Confirm & Continue
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  chatMessagesInner.appendChild(messageDiv);
+  scrollToBottom();
+
+  // Initialize event listeners
+  initBTCardListeners(stories, companyName);
+}
+
+// Render content for a single story - matches V2 design exactly
+function renderBTStoryContent(story, companyName) {
+  if (!story) return '<div class="bt-empty">No story data available</div>';
+
+  const getConfidenceClass = (level) => {
+    switch(level) {
+      case 'high': return 'bt-confidence-high';
+      case 'medium': return 'bt-confidence-medium';
+      case 'low': return 'bt-confidence-low';
+      default: return 'bt-confidence-medium';
+    }
+  };
+
+  return `
+    <!-- Persona Badge -->
+    <div class="bt-persona">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+      <span class="bt-persona-title">${story.persona?.title || ''}</span>
+      <span class="bt-persona-sep">·</span>
+      <span>${story.persona?.vertical || ''}</span>
+      <span class="bt-persona-sep">·</span>
+      <span>${story.persona?.companySize || ''}</span>
+    </div>
+
+    <!-- Joint Value Proposition -->
+    <div class="bt-jvp">
+      <div class="bt-section-label bt-jvp-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+        </svg>
+        JOINT VALUE PROPOSITION
+      </div>
+      <p class="bt-jvp-text">${(story.jointValueProp || '').replace(/Partner/g, companyName)}</p>
+    </div>
+
+    <!-- Problem Today -->
+    <div class="bt-section">
+      <div class="bt-section-label bt-problem-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        THE PROBLEM TODAY
+      </div>
+      <p class="bt-problem-text">
+        ${(story.currentState?.currentWay || '').replace(/Partner/g, companyName)}
+        <span class="bt-problem-but"> ...but </span>
+        <span class="bt-problem-blocker">${story.currentState?.problemBlocker || ''}</span>
+      </p>
+    </div>
+
+    <!-- Better Together -->
+    <div class="bt-together">
+      <div class="bt-section-label bt-together-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path>
+        </svg>
+        BETTER TOGETHER
+      </div>
+      <div class="bt-together-grid">
+        <div class="bt-together-col">
+          <div class="bt-together-col-label">Partner brings:</div>
+          <p>${story.futureState?.partnerContribution || ''}</p>
+        </div>
+        <div class="bt-together-col">
+          <div class="bt-together-col-label">SalesAI adds:</div>
+          <p>${story.futureState?.salesAiContribution || ''}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Benefits -->
+    <div class="bt-section">
+      <div class="bt-section-label bt-benefits-label">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+          <polyline points="17 6 23 6 23 12"></polyline>
+        </svg>
+        WHAT THEY GET
+      </div>
+      <ul class="bt-benefits">
+        ${(story.futureState?.benefits || []).map(benefit => `
+          <li>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            ${benefit}
+          </li>
+        `).join('')}
+      </ul>
+    </div>
+
+    <!-- Do Nothing Risk -->
+    <div class="bt-risk">
+      <div class="bt-risk-label">⚠️ DO NOTHING RISK</div>
+      <p>${story.futureState?.doNothingRisk || ''}</p>
+    </div>
+
+    <!-- Confidence -->
+    <div class="bt-confidence">
+      <span class="bt-confidence-label">Confidence:</span>
+      <span class="${getConfidenceClass(story.confidence?.personaFit)}">Persona ${story.confidence?.personaFit || 'medium'}</span>
+      <span class="${getConfidenceClass(story.confidence?.useCaseFit)}">Use Case ${story.confidence?.useCaseFit || 'medium'}</span>
+      <span class="${getConfidenceClass(story.confidence?.dataQuality)}">Data ${story.confidence?.dataQuality || 'medium'}</span>
+    </div>
+  `;
+}
+
+// Initialize event listeners for the Better Together card
+function initBTCardListeners(stories, companyName) {
+  // Tab clicks
+  document.querySelectorAll('.bt-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const index = parseInt(tab.dataset.index);
+      setActiveBTTab(index, stories, companyName);
+    });
+  });
+
+  // Dot clicks
+  document.querySelectorAll('.bt-dot').forEach(dot => {
+    dot.addEventListener('click', () => {
+      const index = parseInt(dot.dataset.index);
+      setActiveBTTab(index, stories, companyName);
+    });
+  });
+
+  // Navigation arrows
+  document.getElementById('bt-prev')?.addEventListener('click', () => {
+    if (btCardState.activeTab > 0) {
+      setActiveBTTab(btCardState.activeTab - 1, stories, companyName);
+    }
+  });
+
+  document.getElementById('bt-next')?.addEventListener('click', () => {
+    if (btCardState.activeTab < stories.length - 1) {
+      setActiveBTTab(btCardState.activeTab + 1, stories, companyName);
+    }
+  });
+
+  // Valid use case button
+  document.getElementById('bt-valid-btn')?.addEventListener('click', () => {
+    toggleValidUseCase(btCardState.activeTab, stories);
+  });
+
+  // Primary use case button
+  document.getElementById('bt-primary-btn')?.addEventListener('click', () => {
+    setPrimaryUseCase(btCardState.activeTab, stories);
+  });
+
+  // Confirm button
+  document.getElementById('bt-confirm-btn')?.addEventListener('click', () => {
+    confirmBTSelection(stories);
+  });
+}
+
+// Set active tab
+function setActiveBTTab(index, stories, companyName) {
+  btCardState.activeTab = index;
+  btCardState.hasInteracted = true;
+
+  // Update tabs
+  document.querySelectorAll('.bt-tab').forEach((tab, i) => {
+    tab.classList.toggle('active', i === index);
+  });
+
+  // Update dots
+  document.querySelectorAll('.bt-dot').forEach((dot, i) => {
+    dot.classList.toggle('active', i === index);
+  });
+
+  // Update navigation arrows
+  const prevBtn = document.getElementById('bt-prev');
+  const nextBtn = document.getElementById('bt-next');
+  if (prevBtn) prevBtn.disabled = index === 0;
+  if (nextBtn) nextBtn.disabled = index === stories.length - 1;
+
+  // Update hint
+  const hint = document.getElementById('bt-nav-hint');
+  if (hint) {
+    hint.innerHTML = `${index + 1} of ${stories.length}`;
+    hint.classList.add('counter');
+  }
+
+  // Update content
+  const content = document.getElementById('bt-content');
+  if (content) {
+    content.innerHTML = renderBTStoryContent(stories[index], companyName);
+  }
+
+  // Update action buttons state
+  updateActionButtonsState(index, stories);
+}
+
+// Toggle valid use case
+function toggleValidUseCase(index, stories) {
+  if (btCardState.validUseCases.has(index)) {
+    btCardState.validUseCases.delete(index);
+    if (btCardState.primaryUseCase === index) {
+      btCardState.primaryUseCase = null;
+    }
+  } else {
+    btCardState.validUseCases.add(index);
+  }
+  updateActionButtonsState(index, stories);
+  updateTabIndicators();
+}
+
+// Set primary use case
+function setPrimaryUseCase(index, stories) {
+  if (!btCardState.validUseCases.has(index)) {
+    btCardState.validUseCases.add(index);
+  }
+  btCardState.primaryUseCase = index;
+  updateActionButtonsState(index, stories);
+  updateTabIndicators();
+}
+
+// Update action buttons state
+function updateActionButtonsState(index, stories) {
+  const validBtn = document.getElementById('bt-valid-btn');
+  const primaryBtn = document.getElementById('bt-primary-btn');
+  const statusEl = document.getElementById('bt-selection-status');
+
+  const isValid = btCardState.validUseCases.has(index);
+  const isPrimary = btCardState.primaryUseCase === index;
+
+  if (validBtn) {
+    validBtn.classList.toggle('active', isValid);
+    validBtn.querySelector('span').textContent = isValid ? 'Valid Use Case ✓' : 'Mark as Valid';
+  }
+
+  if (primaryBtn) {
+    primaryBtn.classList.toggle('active', isPrimary);
+    primaryBtn.querySelector('span').textContent = isPrimary ? 'Primary ★' : 'Set as Primary';
+  }
+
+  // Update selection status
+  if (statusEl) {
+    const count = btCardState.validUseCases.size;
+    const effectivePrimary = btCardState.primaryUseCase !== null
+      ? btCardState.primaryUseCase
+      : (btCardState.validUseCases.size > 0 ? Array.from(btCardState.validUseCases)[0] : 0);
+    const primaryLabel = stories[effectivePrimary]?.useCase || stories[0].useCase;
+
+    if (count === 0) {
+      statusEl.innerHTML = 'Select at least one valid use case to continue';
+    } else {
+      statusEl.innerHTML = `${count} use case${count > 1 ? 's' : ''} selected · ${btCardState.primaryUseCase !== null ? 'Primary' : 'Will default to'}: <span class="bt-primary-label">${primaryLabel}</span>`;
+    }
+  }
+
+  // Update confirm button state
+  const confirmBtn = document.getElementById('bt-confirm-btn');
+  if (confirmBtn) {
+    confirmBtn.disabled = btCardState.validUseCases.size === 0;
+  }
+}
+
+// Update tab indicators
+function updateTabIndicators() {
+  document.querySelectorAll('.bt-tab').forEach((tab, i) => {
+    const checkIndicator = tab.querySelector('.bt-tab-check');
+    const starIndicator = tab.querySelector('.bt-tab-star');
+
+    if (checkIndicator) {
+      checkIndicator.style.display = btCardState.validUseCases.has(i) ? 'flex' : 'none';
+    }
+    if (starIndicator) {
+      starIndicator.style.display = btCardState.primaryUseCase === i ? 'flex' : 'none';
+    }
+  });
+}
+
+// Confirm Better Together selection
+function confirmBTSelection(stories) {
+  if (btCardState.validUseCases.size === 0 || btCardState.isSubmitted) return;
+
+  const effectivePrimary = btCardState.primaryUseCase !== null
+    ? btCardState.primaryUseCase
+    : Array.from(btCardState.validUseCases)[0];
+
+  const selectedData = {
+    validUseCases: Array.from(btCardState.validUseCases).map(i => stories[i].useCase),
+    primaryUseCase: stories[effectivePrimary].useCase,
+    primaryStory: stories[effectivePrimary]
+  };
+
+  // Store in state
+  state.selectedJVP = selectedData;
+  btCardState.isSubmitted = true;
+
+  // Update UI
+  const confirmBtn = document.getElementById('bt-confirm-btn');
+  if (confirmBtn) {
+    confirmBtn.innerHTML = 'Confirmed <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20,6 9,17 4,12"/></svg>';
+    confirmBtn.classList.add('confirmed');
+    confirmBtn.disabled = true;
+  }
+
+  console.log('Better Together Selection confirmed:', selectedData);
+
+  // Proceed to next step in the conversation
+  setTimeout(() => {
+    proceedAfterBTSelection(selectedData);
+  }, 500);
+}
+
+// Proceed after Better Together selection
+function proceedAfterBTSelection(selectedData) {
+  // Add confirmation message
+  const typingId = addTypingIndicator();
+
+  setTimeout(() => {
+    removeTypingIndicator(typingId);
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message message-assistant';
+    messageDiv.innerHTML = `
+      <div class="message-content">
+        <div class="message-text">
+          Excellent choice! <strong>${selectedData.primaryUseCase}</strong> is a great fit for your partnership.
+          We'll build your Mutual Action Plan around this use case. Let's continue with a few more questions to finalize your application.
+        </div>
+      </div>
+    `;
+    chatMessagesInner.appendChild(messageDiv);
+    scrollToBottom();
+
+    // Continue with next conversation step
+    setTimeout(() => {
+      processNextStep();
+    }, 800);
+  }, 600);
+}
+
+// Fallback simple partnership card (when no JVP stories)
+function displaySimplePartnershipCard(profile, insights, companyName) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'message message-assistant';
+
+  const serviceTags = (profile.services || []).slice(0, 6).map(svc => `
+    <span class="profile-tag service-tag">${svc}</span>
+  `).join('');
+
+  const industryTags = (profile.targetIndustries || []).slice(0, 6).map(ind => `
+    <span class="profile-tag industry-tag">${ind}</span>
+  `).join('');
+
+  messageDiv.innerHTML = `
+    <div class="message-content">
+      <div class="message-text">Here's what we learned about <strong>${companyName}</strong>:</div>
+      <div class="simple-partnership-card">
+        ${serviceTags ? `
+          <div class="profile-section">
+            <div class="section-title">Services</div>
+            <div class="profile-tags">${serviceTags}</div>
+          </div>
+        ` : ''}
+        ${industryTags ? `
+          <div class="profile-section">
+            <div class="section-title">Industries</div>
+            <div class="profile-tags">${industryTags}</div>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+
+  chatMessagesInner.appendChild(messageDiv);
+  scrollToBottom();
+}
 
 function displayPartnershipProfileCard(profile, insights) {
   if (!profile || (!profile.targetRoles.length && !profile.targetIndustries.length && !profile.useCases.length)) {
