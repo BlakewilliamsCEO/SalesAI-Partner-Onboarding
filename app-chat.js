@@ -1774,26 +1774,28 @@ async function enrichCompanyData(website) {
   }
 
   // Handle competitor/partner fit detection result
+  // Data is stored but NOT displayed to user (used internally for Better Together stories)
   if (competitorResult.status === 'fulfilled' && competitorResult.value) {
     const { competitors, fitSignals, readinessScore } = competitorResult.value;
-
-    // Display partner readiness card if we found meaningful signals
-    if (competitors.length > 0 || Object.keys(fitSignals).length >= 2) {
-      await delay(500);
-      displayPartnerReadinessCard(competitors, fitSignals, readinessScore);
-    }
+    // Store data for internal use
+    state.competitorSignals = competitors;
+    state.partnerFitSignals = fitSignals;
+    state.partnerReadinessScore = readinessScore;
+    console.log('Partner fit data stored:', { competitors: competitors.length, signals: Object.keys(fitSignals).length, score: readinessScore });
   }
 
-  // Handle customer discovery result (runs after company card is displayed)
+  // Handle customer discovery result
+  // Data is stored but NOT displayed to user (used internally for Better Together stories)
   if (customerResult.status === 'fulfilled' && customerResult.value.length > 0) {
     const customers = customerResult.value;
 
     // Enrich customer companies
     const enrichments = await enrichCustomerCompanies(customers);
 
-    // Display customer discovery card
-    await delay(500);
-    displayCustomerDiscovery(customers, enrichments);
+    // Store for internal use
+    state.customerCompanies = customers;
+    state.customerEnrichments = enrichments;
+    console.log('Customer data stored:', { count: customers.length, enriched: enrichments.length });
 
     // Generate smart prefill with both company and customer data
     await generateSmartPrefillWithCustomers(companyData, enrichments);
