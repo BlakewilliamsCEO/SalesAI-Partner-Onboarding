@@ -6038,7 +6038,7 @@ function displayEnhancedPartnershipCard(profile, insights, enhancedData) {
               </svg>
             </div>
             <div class="expandable-preview-text">
-              <div class="expandable-preview-title">Your Better Together Story with ${companyName}</div>
+              <div class="expandable-preview-title">Our Better Together Story</div>
               <div class="expandable-preview-subtitle">${stories.length} use cases identified for your partnership</div>
             </div>
           </div>
@@ -6057,7 +6057,7 @@ function displayEnhancedPartnershipCard(profile, insights, enhancedData) {
                 <svg class="bt-sparkle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path>
                 </svg>
-                <span>Here's our <strong>Better Together</strong> story with ${companyName}</span>
+                <span>Our <strong>Better Together</strong> Story</span>
               </div>
             </div>
 
