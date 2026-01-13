@@ -1071,6 +1071,37 @@ function setupInputHandlers() {
 }
 
 // ============================================
+// EXPANDABLE CARD TOGGLE
+// ============================================
+
+function toggleExpandableCard(wrapperId) {
+  const wrapper = document.getElementById(wrapperId);
+  if (!wrapper) return;
+
+  const preview = wrapper.querySelector('.expandable-card-preview');
+  const content = wrapper.querySelector('.expandable-card-content');
+
+  if (!preview || !content) return;
+
+  const isExpanded = content.classList.contains('expanded');
+
+  if (isExpanded) {
+    // Collapse
+    content.classList.remove('expanded');
+    preview.classList.remove('expanded');
+  } else {
+    // Expand
+    content.classList.add('expanded');
+    preview.classList.add('expanded');
+    // Scroll to show the expanded content
+    setTimeout(() => scrollToBottom(), 100);
+  }
+}
+
+// Make it globally accessible for onclick handlers
+window.toggleExpandableCard = toggleExpandableCard;
+
+// ============================================
 // CONVERSATION ENGINE
 // ============================================
 
@@ -2993,11 +3024,31 @@ async function addEnrichmentCard(data) {
   const messageDiv = document.createElement('div');
   messageDiv.className = 'message message-assistant';
 
-  // Build the impressive enrichment card
+  // Build the impressive enrichment card with expandable wrapper
   messageDiv.innerHTML = `
     <div class="message-content">
-      <div class="message-text">Found it! Here's what I learned about your company:</div>
-      <div class="enrichment-card enrichment-card-full enrichment-card-wow">
+      <div class="expandable-card-wrapper" id="enrichment-expandable">
+        <div class="expandable-card-preview" onclick="toggleExpandableCard('enrichment-expandable')">
+          <div class="expandable-preview-content">
+            <div class="expandable-preview-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <div class="expandable-preview-text">
+              <div class="expandable-preview-title">Found it! Here's what I learned about ${name}</div>
+              <div class="expandable-preview-subtitle">${dataPointsCount} data points discovered</div>
+            </div>
+          </div>
+          <div class="expandable-preview-action">
+            <span>View Details</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="expandable-card-content">
+          <div class="enrichment-card enrichment-card-full enrichment-card-wow">
         <!-- Header with logo and data points badge -->
         <div class="enrichment-header-wow">
           <div class="enrichment-logo-wow">
@@ -3374,6 +3425,8 @@ async function addEnrichmentCard(data) {
             <span>Verified via The Companies API</span>
           </div>
           <div class="enrichment-timestamp">Just now</div>
+        </div>
+          </div>
         </div>
       </div>
     </div>
@@ -5976,16 +6029,37 @@ function displayEnhancedPartnershipCard(profile, insights, enhancedData) {
 
   messageDiv.innerHTML = `
     <div class="message-content">
-      <div class="bt-card">
-        <!-- Header -->
-        <div class="bt-header">
-          <div class="bt-header-content">
-            <svg class="bt-sparkle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path>
+      <div class="expandable-card-wrapper" id="bt-expandable">
+        <div class="expandable-card-preview" onclick="toggleExpandableCard('bt-expandable')">
+          <div class="expandable-preview-content">
+            <div class="expandable-preview-icon" style="background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path>
+              </svg>
+            </div>
+            <div class="expandable-preview-text">
+              <div class="expandable-preview-title">Your Better Together Story with ${companyName}</div>
+              <div class="expandable-preview-subtitle">${stories.length} use cases identified for your partnership</div>
+            </div>
+          </div>
+          <div class="expandable-preview-action">
+            <span>View Story</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
             </svg>
-            <span>Here's our <strong>Better Together</strong> story with ${companyName}</span>
           </div>
         </div>
+        <div class="expandable-card-content">
+          <div class="bt-card">
+            <!-- Header -->
+            <div class="bt-header">
+              <div class="bt-header-content">
+                <svg class="bt-sparkle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275L12 3z"></path>
+                </svg>
+                <span>Here's our <strong>Better Together</strong> story with ${companyName}</span>
+              </div>
+            </div>
 
         <!-- Use Case Navigation -->
         <div class="bt-nav">
@@ -6091,6 +6165,8 @@ function displayEnhancedPartnershipCard(profile, insights, enhancedData) {
               <polyline points="9 18 15 12 9 6"></polyline>
             </svg>
           </button>
+        </div>
+          </div>
         </div>
       </div>
     </div>
