@@ -5903,77 +5903,107 @@ let btCardState = {
 
 // Generate fallback JVP stories when Claude doesn't return them
 function generateFallbackJVPStories(profile, insights, companyName) {
-  // Use cases that align with most common partner scenarios
-  const useCaseTemplates = [
-    {
-      useCase: 'Speed-to-Lead',
-      description: 'Instant outbound call within 60 seconds of lead capture',
-      trigger: 'New form fill, demo request, inbound inquiry'
-    },
-    {
-      useCase: 'Demo/Meeting Booking',
-      description: 'AI schedules meetings directly to rep calendars 24/7',
-      trigger: 'Qualified lead needs appointment'
-    },
-    {
-      useCase: 'CRM Lead Reactivation',
-      description: 'Multi-touch call sequences for dormant leads',
-      trigger: 'Stale MQLs (2-6 months old), closed-lost, no-shows'
-    }
-  ];
-
   // Extract available data from profile
   const roles = profile.targetRoles || [];
   const industries = profile.targetIndustries || [];
   const useCases = profile.useCases || [];
   const services = profile.services || [];
 
-  return useCaseTemplates.map((template, index) => ({
-    rank: index + 1,
-    useCase: template.useCase,
-    useCaseTier: index === 0 ? 'perfect' : 'ok',
-    persona: {
-      title: roles[index] || ['VP of Sales', 'Marketing Director', 'Revenue Operations Manager'][index],
-      vertical: industries[index] || ['B2B SaaS', 'Professional Services', 'Technology'][index],
-      seniority: 'Director',
-      companySize: profile.companySize || 'Mid-Market',
-      commonTech: ['HubSpot', 'Salesforce'],
-      organizationalGoals: ['Drive revenue growth', 'Improve lead conversion', 'Scale operations']
+  // Fully distinct use case templates with unique content for each
+  const stories = [
+    {
+      rank: 1,
+      useCase: 'Speed-to-Lead',
+      useCaseTier: 'perfect',
+      persona: {
+        title: roles[0] || 'VP of Sales',
+        vertical: industries[0] || 'B2B SaaS',
+        seniority: 'Director',
+        companySize: profile.companySize || 'Mid-Market',
+        commonTech: ['HubSpot', 'Salesforce'],
+        organizationalGoals: ['Maximize lead conversion', 'Reduce response time']
+      },
+      currentState: {
+        useCase: 'Instant outbound call within 60 seconds of lead capture',
+        problemBlocker: 'By the time reps respond, prospects have moved on to competitors',
+        currentWay: `${companyName} generates leads but relies on manual SDR follow-up`,
+        problems: ['5-10 minute average response time', 'Leads go cold quickly', 'Reps overwhelmed with volume'],
+        limitation: 'Cannot respond fast enough to capture buying intent'
+      },
+      futureState: {
+        betterTogetherCapability: `${companyName} captures leads, SalesAI calls within 60 seconds`,
+        partnerContribution: services[0] || `${companyName}'s lead generation and qualification expertise`,
+        salesAiContribution: 'AI voice agent calls every new lead instantly, 24/7, with natural conversation',
+        connectedFeatures: 'Real-time webhook triggers immediate outbound calls',
+        benefits: ['Sub-60 second response time', '3x higher contact rates', '40% more meetings booked'],
+        doNothingRisk: 'Every minute of delay costs 10% in conversion - competitors responding faster will win'
+      },
+      jointValueProp: `${companyName} + SalesAI = The moment a lead raises their hand, they're talking to your AI agent`,
+      confidence: { personaFit: 'high', useCaseFit: 'high', dataQuality: 'medium' }
     },
-    currentState: {
-      useCase: template.description,
-      problemBlocker: 'Manual follow-up creates delays and dropped leads',
-      currentWay: `Using ${companyName}'s services with manual outreach processes`,
-      problems: ['Slow response times', 'Inconsistent follow-up', 'Limited after-hours coverage'],
-      limitation: 'Unable to scale without adding headcount'
+    {
+      rank: 2,
+      useCase: 'After-Hours Coverage',
+      useCaseTier: 'ok',
+      persona: {
+        title: roles[1] || 'Director of Marketing',
+        vertical: industries[1] || 'Professional Services',
+        seniority: 'Director',
+        companySize: profile.companySize || 'Mid-Market',
+        commonTech: ['Marketo', 'Salesforce'],
+        organizationalGoals: ['Capture every opportunity', 'Extend market reach']
+      },
+      currentState: {
+        useCase: '24/7 lead engagement when your team is offline',
+        problemBlocker: 'Leads that come in after 6pm wait until the next business day',
+        currentWay: `${companyName}'s campaigns run 24/7 but human follow-up stops at 6pm`,
+        problems: ['40% of leads arrive outside business hours', 'Weekend leads never contacted same-day', 'Global prospects in different timezones ignored'],
+        limitation: 'Cannot afford to staff round-the-clock SDR coverage'
+      },
+      futureState: {
+        betterTogetherCapability: `${companyName} campaigns run 24/7, SalesAI responds 24/7`,
+        partnerContribution: services[1] || `${companyName}'s always-on marketing campaigns`,
+        salesAiContribution: 'AI agents work nights, weekends, and holidays - never missing a lead',
+        connectedFeatures: 'Timezone-aware calling with intelligent scheduling',
+        benefits: ['True 24/7 lead response', 'Capture weekend and evening prospects', 'Global timezone coverage'],
+        doNothingRisk: 'Losing 40% of opportunities that arrive when your team is offline'
+      },
+      jointValueProp: `${companyName} + SalesAI = Your pipeline never sleeps, even when your team does`,
+      confidence: { personaFit: 'medium', useCaseFit: 'high', dataQuality: 'medium' }
     },
-    empathyMap: {
-      say: ['We need faster lead response', 'Our team can\'t keep up with volume'],
-      think: ['We\'re losing deals to competitors who respond faster'],
-      feel: ['Frustrated', 'Overwhelmed by lead volume'],
-      do: ['Prioritize only hot leads', 'Miss evening/weekend inquiries']
-    },
-    futureState: {
-      betterTogetherCapability: `${companyName} + SalesAI enables instant, 24/7 lead engagement`,
-      partnerContribution: services[0] || useCases[0] || `${companyName}'s expertise in their domain`,
-      salesAiContribution: 'AI voice agents that respond within 60 seconds, qualify leads, and book meetings automatically',
-      connectedFeatures: 'Native CRM integration ensures seamless handoffs and data sync',
-      benefits: ['100% lead contact rate', 'Meetings booked 24/7', '2-3x improvement in speed-to-lead'],
-      doNothingRisk: 'Competitors with faster response times will continue capturing your prospects'
-    },
-    jointValueProp: `${companyName} + SalesAI = Every lead contacted instantly, qualified automatically, and converted faster`,
-    proofPoints: {
-      partnerEvidence: `${companyName} has established expertise serving ${industries[0] || 'B2B companies'}`,
-      salesAiEvidence: 'SalesAI customers see 40% increase in meeting bookings with instant follow-up',
-      sharedCustomerProfile: `${industries[0] || 'B2B'} companies with high lead volume needing faster response`
-    },
-    confidence: {
-      personaFit: index === 0 ? 'high' : 'medium',
-      useCaseFit: index === 0 ? 'high' : 'medium',
-      dataQuality: 'medium',
-      reasoning: 'Generated from available partner profile data - customize based on actual use cases'
+    {
+      rank: 3,
+      useCase: 'Database Reactivation',
+      useCaseTier: 'ok',
+      persona: {
+        title: roles[2] || 'Revenue Operations Manager',
+        vertical: industries[2] || 'Technology',
+        seniority: 'Manager',
+        companySize: profile.companySize || 'Mid-Market',
+        commonTech: ['Salesforce', 'Outreach'],
+        organizationalGoals: ['Maximize database value', 'Reactivate dormant pipeline']
+      },
+      currentState: {
+        useCase: 'Re-engage cold leads and closed-lost opportunities at scale',
+        problemBlocker: 'Thousands of old leads sitting untouched in the CRM',
+        currentWay: `${companyName} has years of accumulated leads that reps ignore for new ones`,
+        problems: ['Reps only work fresh leads', '80% of database never re-contacted', 'No capacity for nurture calls'],
+        limitation: 'Not enough SDRs to systematically work aged pipeline'
+      },
+      futureState: {
+        betterTogetherCapability: `${companyName}'s database + SalesAI's scalable outreach = hidden revenue unlocked`,
+        partnerContribution: services[2] || `${companyName}'s rich historical customer data and segmentation`,
+        salesAiContribution: 'AI agents systematically call through aged leads with personalized re-engagement',
+        connectedFeatures: 'CRM-driven campaigns with intelligent prioritization',
+        benefits: ['10-15% reactivation rates', 'Revenue from "dead" leads', 'Full database coverage'],
+        doNothingRisk: 'Leaving millions in potential revenue trapped in your CRM'
+      },
+      jointValueProp: `${companyName} + SalesAI = Turn your forgotten database into your next best pipeline source`,
+      confidence: { personaFit: 'medium', useCaseFit: 'medium', dataQuality: 'medium' }
     }
-  }));
+  ];
+
+  return stories;
 }
 
 // Display the Better Together card - exact match to V2 design
