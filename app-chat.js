@@ -797,6 +797,224 @@ Welcome to the SalesAI partner family! 🚀`
 // INITIALIZATION
 // ============================================
 
+// ============================================
+// CINEMATIC REVEAL - PX INTRO ANIMATION
+// ============================================
+
+const PX_COLORS = {
+  green: '#4ADE80',
+  greenDark: '#22c55e',
+  cyan: '#06b6d4'
+};
+
+function initCinematicReveal() {
+  const isMobile = window.innerWidth < 768;
+  let phase = 0;
+
+  // Create ambient particles
+  createAmbientParticles(isMobile);
+
+  // Animation sequence timings
+  const timings = [
+    500,   // 0->1: start particles
+    2000,  // 1->2: logo appears
+    800,   // 2->3: PX pops
+    600,   // 3->4: line draws
+    800,   // 4->5: Partner Experience
+    600,   // 5->6: Welcome text
+    1000   // 6->7: everything settles
+  ];
+
+  function advancePhase() {
+    phase++;
+    updatePhase(phase, isMobile);
+    if (phase < timings.length) {
+      setTimeout(advancePhase, timings[phase]);
+    }
+  }
+
+  setTimeout(advancePhase, timings[0]);
+
+  // Set up CTA button handler
+  document.getElementById('px-cta').addEventListener('click', transitionToApp);
+}
+
+function createAmbientParticles(isMobile) {
+  const container = document.getElementById('px-ambient-particles');
+  const staticCount = isMobile ? 30 : 50;
+  const floatingCount = isMobile ? 12 : 20;
+
+  // Static particles
+  for (let i = 0; i < staticCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'px-particle px-particle-ambient';
+    const size = 1 + Math.random() * 2;
+    const opacity = 0.2 + Math.random() * 0.4;
+    particle.style.cssText = `
+      left: ${Math.random() * 100}%;
+      top: ${Math.random() * 100}%;
+      width: ${size}px;
+      height: ${size}px;
+      opacity: ${opacity};
+      box-shadow: 0 0 ${size * 3}px ${PX_COLORS.cyan};
+    `;
+    container.appendChild(particle);
+  }
+
+  // Floating particles
+  for (let i = 0; i < floatingCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'px-particle px-particle-ambient px-particle-floating';
+    const size = 1 + Math.random() * 2;
+    particle.style.cssText = `
+      left: ${Math.random() * 100}%;
+      width: ${size}px;
+      height: ${size}px;
+      box-shadow: 0 0 ${size * 2}px ${PX_COLORS.cyan};
+      --duration: ${15 + Math.random() * 20}s;
+      --delay: ${Math.random() * 10}s;
+    `;
+    container.appendChild(particle);
+  }
+}
+
+function createConvergingParticles(isMobile) {
+  const container = document.getElementById('px-converge-particles');
+  container.innerHTML = '';
+
+  const count = isMobile ? 40 : 60;
+  const distance = isMobile ? 200 : 300;
+  const colors = [PX_COLORS.green, PX_COLORS.cyan, PX_COLORS.greenDark];
+
+  for (let i = 0; i < count; i++) {
+    const angle = (i / count) * Math.PI * 2;
+    const dist = distance + Math.random() * (isMobile ? 100 : 200);
+    const startX = Math.cos(angle) * dist;
+    const startY = Math.sin(angle) * dist;
+    const size = isMobile ? (1.5 + Math.random() * 2.5) : (2 + Math.random() * 4);
+    const color = colors[Math.floor(Math.random() * 3)];
+    const delay = Math.random() * 0.5;
+    const duration = 1.5 + Math.random() * 0.5;
+
+    const particle = document.createElement('div');
+    particle.className = 'px-particle px-particle-converge';
+    particle.style.cssText = `
+      width: ${size}px;
+      height: ${size}px;
+      background: ${color};
+      box-shadow: 0 0 ${size * 2}px ${color};
+      --start-x: ${startX}px;
+      --start-y: ${startY}px;
+      --delay: ${delay}s;
+      --duration: ${duration}s;
+    `;
+    container.appendChild(particle);
+  }
+}
+
+function createOrbitingParticles(isMobile) {
+  const container = document.getElementById('px-orbits');
+  container.innerHTML = '';
+  container.style.display = 'block';
+
+  const rings = isMobile ? [
+    { count: 6, radius: 80, duration: 8, reverse: false },
+    { count: 8, radius: 110, duration: 12, reverse: true }
+  ] : [
+    { count: 8, radius: 100, duration: 8, reverse: false },
+    { count: 12, radius: 140, duration: 12, reverse: true },
+    { count: 6, radius: 180, duration: 15, reverse: false }
+  ];
+
+  rings.forEach((ring, ri) => {
+    const ringEl = document.createElement('div');
+    ringEl.className = 'px-orbit-ring';
+
+    for (let i = 0; i < ring.count; i++) {
+      const particle = document.createElement('div');
+      particle.className = `px-orbit-particle${ring.reverse ? ' reverse' : ''}`;
+      particle.style.cssText = `
+        --duration: ${ring.duration}s;
+        animation-delay: ${(i / ring.count) * ring.duration}s;
+      `;
+
+      const dot = document.createElement('div');
+      dot.className = 'px-orbit-dot';
+      dot.style.setProperty('--radius', `${ring.radius}px`);
+
+      particle.appendChild(dot);
+      ringEl.appendChild(particle);
+    }
+
+    container.appendChild(ringEl);
+  });
+}
+
+function updatePhase(phase, isMobile) {
+  // Phase 1: Converging particles start
+  if (phase === 1) {
+    createConvergingParticles(isMobile);
+  }
+
+  // Phase 2: Logo appears, flash, burst, orb activates
+  if (phase === 2) {
+    document.getElementById('px-orb').classList.add('active');
+    document.getElementById('px-flash').style.display = 'block';
+    document.getElementById('px-burst').style.display = 'block';
+    document.getElementById('px-rings').style.display = 'block';
+    document.getElementById('px-logo').classList.add('visible');
+  }
+
+  // Phase 3: Letters pop
+  if (phase === 3) {
+    document.getElementById('px-letter-p').classList.add('visible');
+    document.getElementById('px-letter-x').classList.add('visible');
+  }
+
+  // Phase 4: Line draws
+  if (phase === 4) {
+    document.getElementById('px-line').classList.add('visible');
+  }
+
+  // Phase 5: Headline appears
+  if (phase === 5) {
+    document.getElementById('px-headline-text').classList.add('visible');
+  }
+
+  // Phase 6: Welcome text appears
+  if (phase === 6) {
+    document.getElementById('px-welcome').classList.add('visible');
+  }
+
+  // Phase 7: Orbiting particles, tagline, and CTA appear
+  if (phase === 7) {
+    createOrbitingParticles(isMobile);
+    document.getElementById('px-tagline').classList.add('visible');
+    document.getElementById('px-cta').classList.add('visible');
+  }
+}
+
+function transitionToApp() {
+  const reveal = document.getElementById('px-reveal');
+  const appLayout = document.getElementById('app-layout');
+
+  // Fade out reveal
+  reveal.classList.add('fade-out');
+
+  // After fade completes, hide reveal and show app
+  setTimeout(() => {
+    reveal.classList.add('hidden');
+    appLayout.style.display = '';
+
+    // Initialize the main app
+    init();
+  }, 500);
+}
+
+// ============================================
+// MAIN APP INITIALIZATION
+// ============================================
+
 function init() {
   // Initialize DOM elements
   chatMessages = document.getElementById('chat-messages');
@@ -8788,4 +9006,5 @@ window.testPartnerStackIntegration = testPartnerStackIntegration;
 // INIT
 // ============================================
 
-document.addEventListener('DOMContentLoaded', init);
+// Start with cinematic reveal, then transition to main app
+document.addEventListener('DOMContentLoaded', initCinematicReveal);

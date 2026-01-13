@@ -4,13 +4,93 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SalesAi | Partner Application</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles-chat.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="app-layout">
+  <!-- Cinematic Reveal Intro Screen -->
+  <div id="px-reveal" class="px-reveal-container">
+    <!-- Background gradient -->
+    <div class="px-background"></div>
+
+    <!-- Gradient orb -->
+    <div id="px-orb" class="px-gradient-orb"></div>
+
+    <!-- Ambient particles container -->
+    <div id="px-ambient-particles" class="px-particles"></div>
+
+    <!-- Converging particles container -->
+    <div id="px-converge-particles" class="px-particles"></div>
+
+    <!-- Screen flash -->
+    <div id="px-flash" class="px-screen-flash" style="display: none;"></div>
+
+    <!-- Radial burst -->
+    <div id="px-burst" class="px-radial-burst" style="display: none;">
+      <div class="px-burst-ring" style="animation-delay: 0s;"></div>
+      <div class="px-burst-ring" style="animation-delay: 0.1s;"></div>
+      <div class="px-burst-ring" style="animation-delay: 0.2s;"></div>
+    </div>
+
+    <!-- Main content -->
+    <div class="px-content">
+      <!-- Welcome text -->
+      <div id="px-welcome" class="px-welcome">
+        <p class="px-welcome-text">Welcome to the SalesAI</p>
+      </div>
+
+      <!-- Logo container -->
+      <div class="px-logo-container">
+        <!-- Breathing rings -->
+        <div id="px-rings" style="display: none;">
+          <div class="px-breathing-ring" style="width: 100px; height: 100px; border: 1px solid rgba(74, 222, 128, 0.3);"></div>
+          <div class="px-breathing-ring" style="width: 100px; height: 100px; border: 1px solid rgba(74, 222, 128, 0.2);"></div>
+        </div>
+
+        <!-- PX Logo -->
+        <div id="px-logo" class="px-logo">
+          <div class="px-logo-inner-glow"></div>
+          <div class="px-logo-letters">
+            <span id="px-letter-p" class="px-logo-letter">P</span>
+            <span id="px-letter-x" class="px-logo-letter">X</span>
+          </div>
+        </div>
+
+        <!-- Orbiting particles -->
+        <div id="px-orbits" class="px-orbits" style="display: none;"></div>
+      </div>
+
+      <!-- Animated line -->
+      <div class="px-line-container">
+        <div id="px-line" class="px-line"></div>
+      </div>
+
+      <!-- Headline -->
+      <div class="px-headline">
+        <h1 id="px-headline-text" class="px-headline-text">Partner Experience</h1>
+      </div>
+
+      <!-- Tagline -->
+      <p id="px-tagline" class="px-tagline">Where elite partners build the future of AI-powered sales</p>
+
+      <!-- CTA Button -->
+      <button id="px-cta" class="px-cta-button">
+        <div class="px-cta-shimmer"></div>
+        <span class="px-cta-text">Meet Your PX Agent</span>
+        <svg class="px-cta-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="7" y1="17" x2="17" y2="7"></line>
+          <polyline points="7 7 17 7 17 17"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Bottom gradient fade -->
+    <div class="px-bottom-fade"></div>
+  </div>
+
+  <div class="app-layout" style="display: none;" id="app-layout">
     <!-- Left Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -32,16 +112,70 @@
 
       <nav class="sidebar-nav">
         <div class="nav-section">
-          <div class="nav-section-title">Application Sections</div>
+          <div class="nav-section-title">Application</div>
           <div class="nav-steps" id="nav-steps">
             <!-- Steps rendered by JS -->
           </div>
         </div>
 
-        <div class="nav-section">
-          <div class="nav-section-title">Scoring</div>
+        <div class="nav-section" id="milestones-section">
+          <div class="nav-section-title">Partnership Milestones</div>
+          <div class="milestone-steps" id="milestone-steps">
+            <div class="milestone-step" data-milestone="assessment">
+              <div class="milestone-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 11l3 3L22 4"/>
+                  <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                </svg>
+              </div>
+              <div class="milestone-content">
+                <div class="milestone-label">Partner Assessment</div>
+                <div class="milestone-desc">Alignment report</div>
+              </div>
+            </div>
+            <div class="milestone-step locked" data-milestone="partnerstack">
+              <div class="milestone-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+              </div>
+              <div class="milestone-content">
+                <div class="milestone-label">PartnerStack Signoff</div>
+                <div class="milestone-desc">Activate portal</div>
+              </div>
+            </div>
+            <div class="milestone-step locked" data-milestone="valueprop">
+              <div class="milestone-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+              </div>
+              <div class="milestone-content">
+                <div class="milestone-label">Joint Value Prop</div>
+                <div class="milestone-desc">Co-develop positioning</div>
+              </div>
+            </div>
+            <div class="milestone-step locked" data-milestone="gtm">
+              <div class="milestone-icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+              </div>
+              <div class="milestone-content">
+                <div class="milestone-label">GTM Strategy</div>
+                <div class="milestone-desc">Launch plan</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-section" id="fit-info-section">
+          <div class="nav-section-title">Partnership Fit</div>
           <div class="nav-info">
-            <div class="nav-info-title">Qualification Factors</div>
+            <div class="nav-info-title">What We're Exploring</div>
             <ul class="nav-info-list">
               <li>ICP & Market Fit</li>
               <li>Revenue Quality</li>
@@ -51,7 +185,7 @@
             </ul>
           </div>
           <div class="score-preview" id="score-preview" style="display: none;">
-            <div class="score-label">Current Score</div>
+            <div class="score-label">Partnership Alignment</div>
             <div class="score-value" id="current-score">0</div>
             <div class="score-bar">
               <div class="score-fill" id="score-fill"></div>
@@ -78,54 +212,37 @@
       </div>
     </aside>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <div class="content-container">
-        <!-- Header -->
-        <header class="content-header">
-          <div class="header-logo">
-            <svg class="header-logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <!-- L-shaped bracket top-left -->
-              <path d="M2 2h10v5H7v13H2V2z" fill="#22c55e"/>
-              <!-- Rounded pill top-right -->
-              <rect x="18" y="2" width="20" height="11" rx="5.5" fill="#22c55e"/>
-              <!-- Circle ring bottom-left -->
-              <circle cx="11" cy="29" r="7" stroke="#22c55e" stroke-width="4" fill="none"/>
-            </svg>
-          </div>
-          <h1 class="header-title">Welcome to Your Partnership Journey</h1>
-          <p class="header-subtitle">We're building the best partner program in AI sales — and we want you to help shape it. This application helps us understand your business so we can tailor your experience, resources, and support from day one.</p>
-        </header>
+    <!-- Main Chat Area -->
+    <main class="chat-container">
+      <!-- Chat Messages -->
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-messages-inner" id="chat-messages-inner">
+          <!-- Messages rendered by JS -->
+        </div>
+      </div>
 
-        <!-- Progress Section -->
-        <div class="progress-section">
-          <div class="progress-header">
-            <span class="progress-title">Application Progress</span>
-            <span class="progress-step" id="progress-step-text">Section 1 of 9</span>
+      <!-- Chat Input -->
+      <div class="chat-input-container">
+        <div class="chat-input-wrapper">
+          <div class="chat-input-inner">
+            <textarea
+              id="chat-input"
+              class="chat-input"
+              placeholder="Type your response..."
+              rows="1"
+            ></textarea>
+            <button class="chat-send-btn" id="chat-send-btn" disabled>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
-          <div class="progress-bar">
-            <div class="progress-fill" id="progress-fill"></div>
-          </div>
-          <div class="progress-steps" id="progress-steps">
-            <!-- Steps rendered by JS -->
+          <div class="chat-input-footer">
+            <span class="chat-input-hint">Press Enter to send, Shift+Enter for new line</span>
+            <span class="chat-progress" id="chat-progress">Getting started</span>
           </div>
         </div>
-
-        <!-- Form Section -->
-        <div class="form-section" id="form-section">
-          <!-- Form content rendered by JS -->
-        </div>
-
-        <!-- Footer -->
-        <footer class="content-footer">
-          <p>
-            Questions about the application? Reach out to our Partner Team at partners@salesai.com — we're here to help.
-          </p>
-          <p>
-            By completing this application, you agree to the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a>.
-            We're committed to protecting your privacy and building a partnership based on trust.
-          </p>
-        </footer>
       </div>
     </main>
   </div>
@@ -161,6 +278,45 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Assessment Report Page -->
+  <div class="assessment-overlay" id="assessment-overlay">
+    <div class="assessment-container">
+      <div class="assessment-header">
+        <div class="assessment-header-left">
+          <svg class="assessment-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- L-shaped bracket top-left -->
+            <path d="M2 2h10v5H7v13H2V2z" fill="#22c55e"/>
+            <!-- Rounded pill top-right -->
+            <rect x="18" y="2" width="20" height="11" rx="5.5" fill="#22c55e"/>
+            <!-- Circle ring bottom-left -->
+            <circle cx="11" cy="29" r="7" stroke="#22c55e" stroke-width="4" fill="none"/>
+          </svg>
+          <div class="assessment-title-block">
+            <h1 class="assessment-title">Partner Assessment Report</h1>
+            <p class="assessment-subtitle" id="assessment-partner-name">Partner Company</p>
+          </div>
+        </div>
+        <div class="assessment-header-right">
+          <button class="btn btn-ghost" onclick="shareAssessment()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            Share Report
+          </button>
+          <button class="btn btn-primary" onclick="proceedToPartnerStack()">Continue to PartnerStack</button>
+        </div>
+      </div>
+
+      <div class="assessment-content" id="assessment-content">
+        <!-- Assessment content injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Config file (gitignored) - copy config.example.js to config.js and add your API keys -->
+  <script src="config.js" onerror="console.warn('config.js not found - using placeholder API keys')"></script>
+  <script src="app-chat.js"></script>
 </body>
 </html>

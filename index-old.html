@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalesAi | Partner Application</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- L-shaped bracket top-left -->
+            <path d="M2 2h10v5H7v13H2V2z" fill="#22c55e"/>
+            <!-- Rounded pill top-right -->
+            <rect x="18" y="2" width="20" height="11" rx="5.5" fill="#22c55e"/>
+            <!-- Circle ring bottom-left -->
+            <circle cx="11" cy="29" r="7" stroke="#22c55e" stroke-width="4" fill="none"/>
+          </svg>
+          <div class="logo-text">
+            <span class="logo-name">SalesAi</span>
+            <span class="logo-tagline">Partner Application</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Application Sections</div>
+          <div class="nav-steps" id="nav-steps">
+            <!-- Steps rendered by JS -->
+          </div>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Scoring</div>
+          <div class="nav-info">
+            <div class="nav-info-title">Qualification Factors</div>
+            <ul class="nav-info-list">
+              <li>ICP & Market Fit</li>
+              <li>Revenue Quality</li>
+              <li>GTM Capability</li>
+              <li>Service Readiness</li>
+              <li>Scale Potential</li>
+            </ul>
+          </div>
+          <div class="score-preview" id="score-preview" style="display: none;">
+            <div class="score-label">Current Score</div>
+            <div class="score-value" id="current-score">0</div>
+            <div class="score-bar">
+              <div class="score-fill" id="score-fill"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="logo logo-small">
+          <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- L-shaped bracket top-left -->
+            <path d="M2 2h10v5H7v13H2V2z" fill="#22c55e"/>
+            <!-- Rounded pill top-right -->
+            <rect x="18" y="2" width="20" height="11" rx="5.5" fill="#22c55e"/>
+            <!-- Circle ring bottom-left -->
+            <circle cx="11" cy="29" r="7" stroke="#22c55e" stroke-width="4" fill="none"/>
+          </svg>
+          <div class="logo-text">
+            <span class="logo-name">SalesAi</span>
+            <span class="logo-tagline">Simplifying Ai</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="content-container">
+        <!-- Header -->
+        <header class="content-header">
+          <div class="header-logo">
+            <svg class="header-logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- L-shaped bracket top-left -->
+              <path d="M2 2h10v5H7v13H2V2z" fill="#22c55e"/>
+              <!-- Rounded pill top-right -->
+              <rect x="18" y="2" width="20" height="11" rx="5.5" fill="#22c55e"/>
+              <!-- Circle ring bottom-left -->
+              <circle cx="11" cy="29" r="7" stroke="#22c55e" stroke-width="4" fill="none"/>
+            </svg>
+          </div>
+          <h1 class="header-title">Welcome to Your Partnership Journey</h1>
+          <p class="header-subtitle">We're building the best partner program in AI sales — and we want you to help shape it. This application helps us understand your business so we can tailor your experience, resources, and support from day one.</p>
+        </header>
+
+        <!-- Progress Section -->
+        <div class="progress-section">
+          <div class="progress-header">
+            <span class="progress-title">Application Progress</span>
+            <span class="progress-step" id="progress-step-text">Section 1 of 9</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="progress-steps" id="progress-steps">
+            <!-- Steps rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Form Section -->
+        <div class="form-section" id="form-section">
+          <!-- Form content rendered by JS -->
+        </div>
+
+        <!-- Footer -->
+        <footer class="content-footer">
+          <p>
+            Questions about the application? Reach out to our Partner Team at partners@salesai.com — we're here to help.
+          </p>
+          <p>
+            By completing this application, you agree to the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a>.
+            We're committed to protecting your privacy and building a partnership based on trust.
+          </p>
+        </footer>
+      </div>
+    </main>
+  </div>
+
+  <!-- Success Modal -->
+  <div class="modal-overlay" id="success-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Welcome to the Team!</h3>
+      </div>
+      <div class="modal-body" id="success-content">
+        <!-- Success content injected by JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal()">Go to My Partner Portal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review Modal -->
+  <div class="modal-overlay" id="disqualified-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">Application Received!</h3>
+      </div>
+      <div class="modal-body" id="disqualified-content">
+        <!-- Content injected by JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeDisqualifiedModal()">Close</button>
+        <button class="btn btn-primary" onclick="window.location.href='https://salesai.com'">Explore SalesAI</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
