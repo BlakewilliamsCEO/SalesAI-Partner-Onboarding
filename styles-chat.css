@@ -4795,3 +4795,398 @@ body {
   padding: 16px;
   margin-top: 12px;
 }
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   iPhone Pro Max (430px) and smaller devices
+   ============================================ */
+
+/* Mobile breakpoint - iPhone Pro Max and similar */
+@media (max-width: 480px) {
+  /* Base layout adjustments */
+  .chat-messages-inner {
+    padding: 16px 12px;
+    gap: 16px;
+    max-width: 100%;
+  }
+
+  .message-content {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .message-user .message-content {
+    padding: 10px 12px;
+  }
+
+  /* Chat input */
+  .chat-input-container {
+    padding: 12px;
+  }
+
+  .chat-input-inner {
+    padding: 8px 12px;
+  }
+
+  .chat-input {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  .chat-input-footer {
+    font-size: 11px;
+  }
+
+  /* Enrichment card */
+  .enrichment-card {
+    padding: 14px;
+  }
+
+  .enrichment-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .enrichment-company-name {
+    font-size: 18px;
+  }
+
+  .enrichment-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .enrichment-stat {
+    padding: 10px;
+  }
+
+  .enrichment-stat-value {
+    font-size: 13px;
+  }
+
+  .enrichment-stat-label {
+    font-size: 10px;
+  }
+
+  /* Better Together Card */
+  .bt-card {
+    border-radius: 8px;
+  }
+
+  .bt-header {
+    padding: 12px 14px;
+  }
+
+  .bt-header-content {
+    font-size: 14px;
+    flex-wrap: wrap;
+  }
+
+  .bt-sparkle-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Navigation tabs */
+  .bt-nav {
+    padding: 12px;
+  }
+
+  .bt-nav-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+
+  .bt-nav-count {
+    font-size: 12px;
+  }
+
+  .bt-nav-hint {
+    font-size: 11px;
+  }
+
+  .bt-tabs-row {
+    gap: 6px;
+  }
+
+  .bt-nav-arrow {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .bt-nav-arrow svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .bt-tabs {
+    gap: 6px;
+    padding-bottom: 6px;
+  }
+
+  .bt-tab {
+    min-width: 90px;
+    padding: 8px 10px;
+    border-radius: 6px;
+  }
+
+  .bt-tab-usecase {
+    font-size: 11px;
+  }
+
+  .bt-tab-best-fit,
+  .bt-tab-persona {
+    font-size: 9px;
+  }
+
+  .bt-dots {
+    margin-top: 10px;
+    gap: 6px;
+  }
+
+  .bt-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  /* Content area */
+  .bt-content {
+    padding: 14px;
+  }
+
+  /* Persona badge */
+  .bt-persona {
+    font-size: 11px;
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .bt-persona svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .bt-persona-sep {
+    display: none;
+  }
+
+  /* JVP section */
+  .bt-jvp {
+    padding: 12px;
+    margin: 12px 0;
+  }
+
+  .bt-jvp-label,
+  .bt-section-label {
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .bt-jvp-label svg,
+  .bt-section-label svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .bt-jvp-text {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Problem section */
+  .bt-section {
+    margin: 12px 0;
+  }
+
+  .bt-problem-text {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Better Together grid - stack on mobile */
+  .bt-together {
+    padding: 12px;
+    margin: 12px 0;
+  }
+
+  .bt-together-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .bt-together-col {
+    padding: 10px;
+  }
+
+  .bt-together-col-label {
+    font-size: 10px;
+  }
+
+  .bt-together-col p {
+    font-size: 12px;
+  }
+
+  /* Benefits */
+  .bt-benefits {
+    gap: 6px;
+  }
+
+  .bt-benefits li {
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .bt-benefits li svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+
+  /* Risk section */
+  .bt-risk {
+    padding: 10px;
+    margin: 12px 0;
+  }
+
+  .bt-risk-label {
+    font-size: 10px;
+  }
+
+  .bt-risk p {
+    font-size: 12px;
+  }
+
+  /* Confidence */
+  .bt-confidence {
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 10px;
+  }
+
+  .bt-confidence span {
+    padding: 3px 6px;
+  }
+
+  /* Actions */
+  .bt-actions {
+    padding: 12px;
+  }
+
+  .bt-action-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .bt-action-btn {
+    padding: 10px 14px;
+    font-size: 12px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .bt-action-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .bt-submit-section {
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .bt-submit-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  /* Form components */
+  .chat-radio-card,
+  .chat-checkbox-card {
+    padding: 12px;
+  }
+
+  .chat-card-label {
+    font-size: 13px;
+  }
+
+  .chat-cards {
+    gap: 8px;
+  }
+
+  /* Inline form rows */
+  .chat-inline-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .chat-field input {
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 10px 12px;
+  }
+
+  .chat-field label {
+    font-size: 12px;
+  }
+
+  /* ICP Range selector */
+  .icp-range {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .icp-range-option {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  /* Typing indicator */
+  .typing-indicator {
+    padding: 8px 12px;
+  }
+
+  /* Action list */
+  .enrichment-actions {
+    gap: 6px;
+  }
+
+  .action-item {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 360px) {
+  .chat-messages-inner {
+    padding: 12px 8px;
+  }
+
+  .bt-header-content {
+    font-size: 13px;
+  }
+
+  .bt-tab {
+    min-width: 80px;
+    padding: 6px 8px;
+  }
+
+  .bt-tab-usecase {
+    font-size: 10px;
+  }
+
+  .bt-jvp-text {
+    font-size: 13px;
+  }
+
+  .bt-together-col p,
+  .bt-benefits li,
+  .bt-risk p {
+    font-size: 11px;
+  }
+}
