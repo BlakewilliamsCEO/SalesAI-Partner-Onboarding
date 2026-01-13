@@ -61,7 +61,12 @@ const server = http.createServer((req, res) => {
             res.end('Server Error');
             return;
           }
-          res.writeHead(200, { 'Content-Type': 'text/html' });
+          res.writeHead(200, {
+            'Content-Type': 'text/html',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
+          });
           res.end(indexContent);
         });
       } else {
@@ -71,7 +76,14 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    res.writeHead(200, { 'Content-Type': contentType });
+    // Add no-cache headers for HTML, CSS, and JS files during development
+    const noCacheHeaders = ext === '.html' || ext === '.css' || ext === '.js' ? {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    } : {};
+
+    res.writeHead(200, { 'Content-Type': contentType, ...noCacheHeaders });
     res.end(content);
   });
 });
