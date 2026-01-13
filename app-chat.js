@@ -302,8 +302,11 @@ const conversationFlow = [
 Over the next few minutes, I'll learn about your business, your customers, and how you go to market — then show you exactly where SalesAI fits.
 
 By the end, you'll have a custom partnership blueprint:
+
 • The value for your customers
+
 • The wins for you
+
 • The deals we'll close together
 
 Let's start — what's your full name?`,
