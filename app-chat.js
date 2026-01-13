@@ -297,11 +297,16 @@ const conversationFlow = [
   {
     section: 0,
     type: 'message',
-    content: `Hey there! I'm so excited you're exploring a partnership with SalesAI.
+    content: `Welcome to the SalesAI Partner Experience (PX).
 
-I'm here to learn about you and your business so we can design the perfect partnership experience. This conversation will help us understand how we can best support your growth.
+Over the next few minutes, I'll learn about your business, your customers, and how you go to market — then show you exactly where SalesAI fits.
 
-Let's start with the basics — what's your name?`,
+By the end, you'll have a custom partnership blueprint:
+• The value for your customers
+• The wins for you
+• The deals we'll close together
+
+Let's start — what's your full name?`,
     inputType: 'text',
     field: 'fullName',
     placeholder: 'Enter your name',
